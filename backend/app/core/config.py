@@ -59,6 +59,16 @@ class Settings(BaseSettings):
     tts_voice: str = "bm_george"
     tts_speed: float = 1.0
 
+    # Memory (Phase 3)
+    embedding_provider: Literal["ollama"] = "ollama"
+    embedding_model: str = "qwen3-embedding:0.6b"
+    embedding_dim: int = 1024
+    memory_top_k: int = 8
+    memory_min_similarity: float = 0.35
+    memory_dedupe_similarity: float = 0.92
+    memory_extraction: bool = True  # global kill-switch; users also have their own toggle
+    auto_migrate: bool = True  # run Alembic migrations on start-up
+
     # Context window budget for conversation history (characters, rough proxy for tokens)
     context_char_budget: int = 12000
     max_message_chars: int = 8000

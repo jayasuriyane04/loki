@@ -76,7 +76,7 @@ export function Composer() {
                 ? temporary
                   ? "This is a temporary conversation"
                   : "Start a new conversation to change this"
-                : "Temporary conversations are hidden from history and will never be used for memory"
+                : "Temporary conversations are hidden from history, don't use your memories and save nothing"
             }
           >
             <Ghost size={13} />

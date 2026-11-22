@@ -8,6 +8,8 @@ aiosqlite>=0.20
 asyncpg>=0.30
 argon2-cffi>=23.1
 httpx>=0.27
+alembic>=1.13
+pgvector>=0.3
 
 # Voice (Phase 2) — local speech recognition and synthesis
 numpy>=2.0

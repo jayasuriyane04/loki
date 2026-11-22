@@ -88,6 +88,28 @@ class OllamaProvider(LLMProvider):
                 raise LLMError(f"Ollama stream failed: {type(e).__name__}", provider=self.name) from e
         raise LLMError("Ollama stream ended unexpectedly.", provider=self.name)
 
+    async def complete(
+        self, messages: list[ChatMessage], *, temperature: float, max_tokens: int, json_schema: dict | None = None
+    ) -> str:
+        body: dict = {
+            "model": self.model,
+            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            "stream": False,
+            "options": {"temperature": temperature, "num_predict": max_tokens},
+        }
+        if json_schema is not None:
+            body["format"] = json_schema
+        think = await self._think_param()
+        if think is not None:
+            body["think"] = think
+        try:
+            resp = await self._client.post("/api/chat", json=body, timeout=120)
+        except httpx.HTTPError as e:
+            raise LLMError(f"Ollama request failed ({type(e).__name__}).", provider=self.name) from e
+        if resp.status_code != 200:
+            raise LLMError(f"Ollama returned HTTP {resp.status_code}: {resp.text[:200]}", provider=self.name)
+        return (resp.json().get("message") or {}).get("content", "")
+
     async def warmup(self) -> None:
         """Ask Ollama to load the model into memory now, so the first real question doesn't pay for it."""
         start = time.perf_counter()

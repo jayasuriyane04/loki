@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mic } from "lucide-react";
-import { memo } from "react";
+import { Brain, Mic, Sparkles } from "lucide-react";
+import { memo, useState } from "react";
+import { useChat } from "@/store/chat";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { UiMessage } from "@/lib/types";
@@ -19,6 +20,53 @@ function Meta({ m }: { m: UiMessage }) {
       {m.status === "interrupted" && <span className="text-warn">interrupted</span>}
       {m.status === "error" && <span className="text-bad">failed</span>}
       <span>{bits.join(" · ")}</span>
+    </div>
+  );
+}
+
+function MemoryTrail({ m }: { m: UiMessage }) {
+  const [open, setOpen] = useState(false);
+  const setView = useChat((s) => s.setView);
+  const recalled = m.recalled ?? [];
+  const saved = m.saved ?? [];
+  if (!recalled.length && !saved.length) return null;
+  const verb = { add: "Saved", update: "Updated", delete: "Forgot" } as const;
+  return (
+    <div className="mt-2 text-[12px]">
+      <div className="flex flex-wrap gap-1.5">
+        {recalled.length > 0 && (
+          <button
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            className="flex items-center gap-1.5 rounded-full border border-line px-2.5 py-0.5 text-dim hover:text-ink"
+          >
+            <Brain size={12} className="text-cyan/80" />
+            Used {recalled.length} {recalled.length === 1 ? "memory" : "memories"}
+          </button>
+        )}
+        {saved.map((op) => (
+          <button
+            key={op.id + op.action}
+            onClick={() => setView("memories")}
+            title="Open Memory"
+            className={`flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-left ${
+              op.action === "delete" ? "border-warn/30 text-warn" : "border-cyan/25 text-cyan/90"
+            }`}
+          >
+            <Sparkles size={11} className="shrink-0" />
+            <span className="truncate">
+              {verb[op.action]}: {op.content}
+            </span>
+          </button>
+        ))}
+      </div>
+      {open && (
+        <ul className="mt-2 space-y-1 border-l border-line pl-3 text-dim">
+          {recalled.map((r) => (
+            <li key={r.id}>{r.content}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -54,6 +102,7 @@ export const MessageView = memo(function MessageView({ m }: { m: UiMessage }) {
           )}
         </div>
         <Meta m={m} />
+        <MemoryTrail m={m} />
       </div>
     </motion.div>
   );

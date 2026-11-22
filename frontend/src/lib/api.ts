@@ -1,4 +1,12 @@
-import type { ConversationDetail, ConversationSummary, ModelsStatus, User, VoiceStatus } from "./types";
+import type {
+  ConversationDetail,
+  ConversationSummary,
+  Memory,
+  MemoryKind,
+  ModelsStatus,
+  User,
+  VoiceStatus,
+} from "./types";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 export const WS_URL = API_URL.replace(/^http/, "ws") + "/ws";
@@ -55,4 +63,21 @@ export const api = {
 
   models: () => request<ModelsStatus>("/api/models"),
   voice: () => request<VoiceStatus>("/api/voice"),
+
+  memories: (opts: { q?: string; kind?: MemoryKind } = {}) => {
+    const p = new URLSearchParams();
+    if (opts.q) p.set("q", opts.q);
+    if (opts.kind) p.set("kind", opts.kind);
+    return request<Memory[]>(`/api/memories${p.size ? `?${p}` : ""}`);
+  },
+  memoryStats: () => request<{ total: number; by_kind: Record<MemoryKind, number> }>("/api/memories/stats"),
+  addMemory: (body: { content: string; kind: MemoryKind; importance: number; project?: string | null }) =>
+    request<Memory>("/api/memories", { method: "POST", body: json(body) }),
+  updateMemory: (id: string, body: Partial<Pick<Memory, "content" | "kind" | "importance" | "project">>) =>
+    request<Memory>(`/api/memories/${id}`, { method: "PATCH", body: json(body) }),
+  deleteMemory: (id: string) => request<void>(`/api/memories/${id}`, { method: "DELETE" }),
+  deleteAllMemories: () => request<{ deleted: number }>("/api/memories?confirm=true", { method: "DELETE" }),
+  settings: () => request<{ memory_enabled: boolean }>("/api/settings"),
+  updateSettings: (body: { memory_enabled: boolean }) =>
+    request<{ memory_enabled: boolean }>("/api/settings", { method: "PATCH", body: json(body) }),
 };

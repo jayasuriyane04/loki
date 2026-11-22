@@ -84,8 +84,29 @@ Server → client
 ```
 After `stt_final`, a voice turn continues exactly like a typed one (`message_saved` with `input_mode: "voice"`, `assistant_start`, `token`…).
 
+## Memory — Phase 3 ✅
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/memories?kind=&q=&limit=` | Newest first; with `q`, a semantic search (each result has `similarity`) |
+| GET | `/api/memories/stats` | `{total, by_kind: {profile, semantic, episodic}}` |
+| POST | `/api/memories` | `{content, kind, importance, project?}` → `201 Memory`. `422` if it contains a secret |
+| PATCH | `/api/memories/{id}` | Any of `content, kind, importance, project`; content changes are re-embedded. `422` on secrets |
+| DELETE | `/api/memories/{id}` | `204` |
+| DELETE | `/api/memories?confirm=true` | Deletes all of the user's memories → `{deleted}`; `400` without `confirm=true` |
+| GET / PATCH | `/api/settings` | `{memory_enabled}`. Off = no recall and no extraction |
+
+`Memory = {id, kind, content, importance, project, source, source_conversation_id, event_at, created_at, updated_at, last_used_at, use_count, similarity}`.
+Memories of other users are always `404`.
+
+WebSocket events
+```jsonc
+{"type": "state", "state": "retrieving"}                                          // recalling memories
+{"type": "memories_used", "conversation_id": "…", "memories": [{"id","kind","content"}]}  // sent before assistant_start
+{"type": "memory_updated", "conversation_id": "…", "operations": [{"action": "add|update|delete", "id", "kind", "content"}]}
+```
+`memory_updated` arrives after the reply (extraction runs in the background) and only when something changed.
+
 ## Planned
-- Phase 3: `/api/memories` (list, search, PATCH, DELETE), `/api/settings` (memory toggle).
 - Phase 4: `/api/documents` (multipart upload, list, delete, reindex), citations on `assistant_end`.
 - Phase 5: `/api/tools`, `/api/tool-executions`, `/api/tasks`, `/api/reminders`, WS `tool_call`, `tool_result`, `confirmation_required` / `confirm`.
 - Phase 7: `/api/metrics`.

@@ -123,7 +123,7 @@ changing the providers.
 
 | Limitation | Impact | Plan |
 |---|---|---|
-| No Docker, PostgreSQL or Redis installed | Phase 1 runs on SQLite (same SQLAlchemy models). | Install Docker Desktop (or native Postgres 16 + pgvector) before Phase 3 — vectors need pgvector. `docker-compose.yml` is provided. |
+| Docker Desktop (installed for Phase 3) | Postgres 16 + pgvector run in Docker (`docker compose up -d postgres`). SQLite still works for quick dev/tests (vector search runs in Python there). | Use `127.0.0.1`, not `localhost`, in `DATABASE_URL` (IPv6 fallback made connections about 5× slower). Redis is defined but not used yet. |
 | Ollama defaults to the AMD iGPU (it reports more memory) | 3.6× slower generation | Solved: `scripts/start-ollama.ps1` runs LOKI's Ollama on port 11435 with the AMD GPU hidden. |
 | Local model is `qwen3:4b-instruct` (4B) | Fast (about 0.2 s to first token) and tool-capable, but weaker at long multi-step reasoning. | RTX 5060 (8 GB) can run 7–8B models (`qwen3:8b`, 5.2 GB) next to Whisper; configure Gemini as a fallback for heavy agentic work. |
 | Celery has no official Windows support | Worker must run in Docker or WSL. | Use Celery in Docker, or `arq` (Redis, async) which runs fine on Windows. Decide in Phase 4. |

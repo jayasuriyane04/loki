@@ -73,6 +73,23 @@ class LLMRouter:
         assert last_error is not None
         raise last_error
 
+    async def complete(
+        self, messages: list[ChatMessage], *, json_schema: dict | None = None, max_tokens: int = 1024,
+        temperature: float = 0.0,
+    ) -> str:
+        """Background/utility completion (memory extraction, summaries) with the same fallback policy."""
+        last_error: LLMError | None = None
+        for provider in [self.primary] + ([self.fallback] if self.fallback else []):
+            try:
+                return await provider.complete(
+                    messages, temperature=temperature, max_tokens=max_tokens, json_schema=json_schema
+                )
+            except LLMError as e:
+                last_error = e
+                log.warning("llm completion failed", extra={"provider": provider.name, "error": str(e)})
+        assert last_error is not None
+        raise last_error
+
     async def health(self) -> tuple[ProviderHealth, ProviderHealth | None]:
         primary = await self.primary.health()
         fallback = await self.fallback.health() if self.fallback else None

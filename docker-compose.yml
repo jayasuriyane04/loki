@@ -1,8 +1,11 @@
-# Data services for Phase 3+. NOT yet tested on this machine (Docker is not installed).
-# Usage: docker compose up -d   then set DATABASE_URL=postgresql+asyncpg://loki:loki@localhost:5432/loki
+# LOKI's data services. Start the database with:  docker compose up -d postgres
+# backend/.env: DATABASE_URL=postgresql+asyncpg://loki:loki@127.0.0.1:5432/loki
+# (use 127.0.0.1, not localhost: on Windows, localhost tries IPv6 first and every new connection stalls)
+# Redis is defined for later phases (task queue) and isn't used yet.
 services:
   postgres:
     image: pgvector/pgvector:pg16
+    restart: unless-stopped  # comes back with Docker Desktop after a reboot
     environment:
       POSTGRES_USER: loki
       POSTGRES_PASSWORD: loki  # local development only

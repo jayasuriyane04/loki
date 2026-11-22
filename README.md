@@ -2,10 +2,10 @@
 
 A voice-first, memory-backed, tool-using personal AI assistant, built in phases.
 
-**Current status: Phases 1–2 done.** LOKI is a working text **and voice** assistant: accounts, persistent
-conversations, streaming replies, hands-free voice with interruption (barge-in), all running locally:
-Whisper speech recognition on the GPU, Kokoro speech synthesis, Ollama for the model.
-Memory, documents and tools are **not built yet**. See [docs/ROADMAP.md](docs/ROADMAP.md).
+**Current status: Phases 1–3 done.** LOKI is a text **and voice** assistant with long-term memory: it learns
+useful facts about you as you talk, recalls them in later conversations, and shows you exactly what it saved and
+used. Everything runs locally: Whisper on the GPU, Kokoro speech, Ollama for the chat and embedding models,
+PostgreSQL + pgvector in Docker. Documents and tools are **not built yet**. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 | Doc | Contents |
 |---|---|
@@ -22,15 +22,20 @@ Memory, documents and tools are **not built yet**. See [docs/ROADMAP.md](docs/RO
 
 ## Run locally (Windows / PowerShell)
 
-Prerequisites: Python 3.12+, Node 20+, [Ollama](https://ollama.com).
+Prerequisites: Python 3.12+, Node 20+, [Ollama](https://ollama.com), Docker Desktop.
+
+Database, once (it restarts with Docker Desktop afterwards):
+```powershell
+docker compose up -d postgres
+```
 
 LOKI's model server, in its own terminal (pins Ollama to the NVIDIA GPU on port 11435; keep it open):
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\start-ollama.ps1
 ```
-First time only, in another terminal, pull the model (2.5 GB):
+First time only, in another terminal, pull the chat model (2.5 GB) and the memory embedding model (640 MB):
 ```powershell
-$env:OLLAMA_HOST="127.0.0.1:11435"; ollama pull qwen3:4b-instruct
+$env:OLLAMA_HOST="127.0.0.1:11435"; ollama pull qwen3:4b-instruct; ollama pull qwen3-embedding:0.6b
 ```
 
 Backend, in one terminal:
@@ -64,6 +69,10 @@ npm run dev
 
 Open http://localhost:3000 and create an account. API docs: http://localhost:8000/docs.
 
+**Memory:** LOKI saves useful facts you mention ("Saved: …" appears under its reply) and shows which
+memories it used for each answer. Open **Memory** in the side panel to search, edit, delete or switch memory
+off. Temporary chats never read or write memory. Passwords and other secrets are never stored.
+
 **Talking to LOKI:** click the mic button next to Send. The top bar shows a red **Mic live** badge while the
 microphone is on. Just speak; LOKI answers out loud, and you can interrupt it by talking (or say "stop").
 Voice, speed and "read typed replies aloud" are in the **Voice** menu in the top bar. Use headphones so
@@ -73,6 +82,13 @@ LOKI doesn't hear itself.
 ```powershell
 cd backend
 .\.venv\Scripts\python.exe -m pytest -q
+```
+The default run uses a throwaway SQLite file. To run the same suite on Postgres + pgvector, first create the test database once:
+```powershell
+docker compose exec -T postgres psql -U loki -d loki -c "create database loki_test;"
+```
+```powershell
+cd backend; $env:TEST_DATABASE_URL="postgresql+asyncpg://loki:loki@127.0.0.1:5432/loki_test"; .\.venv\Scripts\python.exe -m pytest -q
 ```
 ```powershell
 cd frontend

@@ -52,11 +52,34 @@ Server-side sessions so logout / revoke actually work (cookie holds an opaque to
 | latency_ms, first_token_ms | int null | total and time-to-first-token |
 | created_at | timestamptz | |
 
-## Phase 3 — Memory ⏳
-- **memories**: `id, user_id, kind (profile|episodic|semantic), content, importance (0–1),
-  source_message_id, project_id null, valid_from, valid_to null, superseded_by null,
-  embedding vector(N), created_at, updated_at`. HNSW index on embedding.
-- **user_settings**: `user_id pk, memory_enabled, preferences jsonb`.
+## Phase 3 — Memory ✅ (migration `0002`)
+
+### memories
+| column | type | notes |
+|---|---|---|
+| id | uuid pk | |
+| user_id | uuid fk → users, cascade | indexed; every query filters on it |
+| kind | varchar(16) | `profile` (about the user) · `semantic` (projects/facts) · `episodic` (dated events/decisions) |
+| content | text | one standalone third-person sentence, ≤ 400 chars, secret-free |
+| importance | float 0–1 | ≥ 0.7 profile memories are always in context |
+| project | varchar(100) null | project tag, e.g. "Tarka" |
+| source | varchar(24) | `extracted` · `user_edited` |
+| source_conversation_id | uuid fk → conversations, SET NULL | where it was learned |
+| event_at | timestamptz null | when an episodic event happened (time-aware recall) |
+| created_at, updated_at, last_used_at | timestamptz | |
+| use_count | int | times recalled into a reply |
+| embedding | vector(1024) | `qwen3-embedding:0.6b`, L2-normalised. **HNSW** index (`vector_cosine_ops`) on Postgres |
+| embedding_model | varchar(100) | which model produced the vector (needed to re-embed after a model change) |
+
+### user_settings
+`user_id pk/fk cascade, memory_enabled bool, updated_at`. Missing row = memory on.
+
+### conversations (added columns)
+`summary text null`, `summary_until timestamptz null`: working-memory compression. Turns at or before
+`summary_until` are represented by `summary` instead of being sent verbatim.
+
+On SQLite (dev/tests) the vector is stored as text and similarity is computed in Python; on Postgres it is
+computed in SQL with pgvector (`<=>` cosine distance).
 
 ## Phase 4 — Knowledge base ⏳
 - **documents**: `id, user_id, project_id null, title, source, file_type, sha256, size_bytes,
@@ -78,5 +101,10 @@ Server-side sessions so logout / revoke actually work (cookie holds an opaque to
 - **notifications**: `id, user_id, title, body, read_at, created_at`.
 
 ## Migrations
-Phase 1 creates tables on startup (`create_all`). Alembic is introduced together with the move to
-Postgres in Phase 3, starting from a baseline of the Phase 1 schema.
+Alembic, in `backend/migrations/` (`0001` = Phase 1 baseline, `0002` = memory). They run automatically
+at start-up (`AUTO_MIGRATE=true`) or manually:
+```powershell
+cd backend; .\.venv\Scripts\python.exe -m alembic upgrade head
+```
+A database created by Phase 1's `create_all` (no `alembic_version` table) is stamped `0001` first, so
+existing data is kept. Changing `EMBEDDING_DIM` requires a new migration and re-embedding all memories.

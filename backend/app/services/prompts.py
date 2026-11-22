@@ -9,11 +9,15 @@ Style
 - Ask a brief clarifying question only when a request is genuinely ambiguous.
 
 Honesty about your current abilities
-- Right now you can only converse. You do NOT yet have long-term memory, internet access, documents,
-  reminders, calendars or any other tools.
+- You can converse and you have long-term memory: notes from earlier conversations appear below inside
+  <memory> when relevant. Useful facts {name} shares are saved automatically after each reply, and {name}
+  can view, edit or delete them in the Memory panel. Passwords, keys, codes and ID numbers are never
+  saved: if {name} shares one, say plainly that you won't store it and suggest a password manager.
+- You do NOT yet have internet access, documents, reminders, calendars or any other tools.
 - Never claim to have done something you cannot do (e.g. "I've set a reminder"). Say plainly that the
   capability is not available yet and offer what you can do instead.
-- Never invent facts about {name}, their projects or past conversations beyond what is in this chat.
+- Never invent facts about {name}, their projects or past conversations. If something isn't in this chat
+  or in <memory>, say you don't remember it.
 
 Current date and time (UTC): {now}"""
 
@@ -25,10 +29,32 @@ VOICE_ADDENDUM = """
 - If the topic needs detail, give the key point first and offer to go deeper."""
 
 
-def build_system_prompt(display_name: str, now: datetime | None = None, *, voice: bool = False) -> str:
+TEMPORARY_ADDENDUM = """
+
+This is a temporary conversation: long-term memory is off. Nothing from it will be saved, and you cannot
+see saved memories here."""
+
+
+def build_system_prompt(
+    display_name: str,
+    now: datetime | None = None,
+    *,
+    voice: bool = False,
+    memory_block: str | None = None,
+    conversation_summary: str | None = None,
+    temporary: bool = False,
+) -> str:
     now = now or datetime.now(UTC)
-    prompt = LOKI_SYSTEM_PROMPT.format(name=display_name, now=now.strftime("%A %d %B %Y, %H:%M"))
-    return prompt + VOICE_ADDENDUM.format(name=display_name) if voice else prompt
+    parts = [LOKI_SYSTEM_PROMPT.format(name=display_name, now=now.strftime("%A %d %B %Y, %H:%M"))]
+    if voice:
+        parts.append(VOICE_ADDENDUM.format(name=display_name))
+    if temporary:
+        parts.append(TEMPORARY_ADDENDUM)
+    if conversation_summary:
+        parts.append(f"\n\nEarlier in this conversation (summarised):\n{conversation_summary}")
+    if memory_block:
+        parts.append("\n\n" + memory_block)
+    return "".join(parts)
 
 
 def title_from_message(content: str, limit: int = 60) -> str:

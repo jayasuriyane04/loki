@@ -10,10 +10,11 @@ from pydantic import ValidationError
 
 from app.api.deps import resolve_session
 from app.core.config import get_settings
-from app.db.models import User
+from app.db.models import Conversation, User
 from app.db.session import SessionLocal
+from app.memory.service import MemoryService
 from app.schemas import WSAudioUtterance, WSControl, WSUserMessage, WSVoiceConfig
-from app.services.chat import ChatService, TurnError
+from app.services.chat import ChatService, TurnError, TurnResult
 from app.voice.base import VoiceError
 from app.voice.manager import Speaker, VoiceManager
 from app.voice.speech_text import is_stop_command
@@ -39,7 +40,9 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         return
 
     await ws.accept()
-    service = ChatService(ws.app.state.llm, settings)
+    memory: MemoryService | None = ws.app.state.memory
+    service = ChatService(ws.app.state.llm, settings, memory)
+    background: set[asyncio.Task[None]] = ws.app.state.background
     voice: VoiceManager = ws.app.state.voice
     voice_cfg = WSVoiceConfig(type="voice_config", voice=settings.tts_voice, speed=settings.tts_speed)
     send_lock = asyncio.Lock()
@@ -81,6 +84,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     async def run(msg: WSUserMessage | None, audio: tuple[WSAudioUtterance, bytes] | None = None) -> None:
         started = time.perf_counter()
         speaker: Speaker | None = None
+        result: TurnResult | None = None
         try:
             if audio is not None:
                 msg = await transcribe(*audio)
@@ -98,7 +102,12 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 if user is None or not user.is_active:
                     await send({"type": "error", "code": "unauthorized", "message": "Session no longer valid."})
                     return
-                await service.run_turn(db, user, msg, send, on_delta=speaker.feed if speaker else None)
+                result = await service.run_turn(db, user, msg, send, on_delta=speaker.feed if speaker else None)
+            if result is not None and memory is not None:
+                # Runs after the reply, outside this turn: a barge-in must not cancel saving what was said.
+                task = asyncio.create_task(_after_turn(memory, user_id, result, send))
+                background.add(task)
+                task.add_done_callback(background.discard)
             if speaker:
                 await speaker.finish()
         except TurnError as e:
@@ -172,6 +181,35 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         pass
     finally:
         await stop_current()
+
+
+async def _after_turn(memory: MemoryService, user_id: Any, result: TurnResult, send: Any) -> None:
+    """Post-turn memory work: extract durable facts, then compress the conversation if it is getting long."""
+    try:
+        async with SessionLocal() as db:
+            user = await db.get(User, user_id)
+            conv = await db.get(Conversation, result.conversation_id)
+            if user is None or conv is None:
+                return
+            if result.memory_on and result.assistant_status == "complete":
+                ops = await memory.extract(db, user, conv.id, result.user_text, result.assistant_text)
+                if ops:
+                    await _safe(
+                        send,
+                        {
+                            "type": "memory_updated",
+                            "conversation_id": str(conv.id),
+                            "operations": [
+                                {"action": o.action, "id": o.memory_id, "kind": o.kind, "content": o.content}
+                                for o in ops
+                            ],
+                        },
+                    )
+            await memory.compress(db, user, conv)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        log.exception("post-turn memory work failed")
 
 
 def _stt_unavailable(voice: VoiceManager) -> str:

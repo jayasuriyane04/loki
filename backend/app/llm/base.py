@@ -51,6 +51,12 @@ class LLMProvider(ABC):
         """Yield text deltas; the final chunk has done=True and token usage if the provider reports it."""
 
     @abstractmethod
+    async def complete(
+        self, messages: list[ChatMessage], *, temperature: float, max_tokens: int, json_schema: dict | None = None
+    ) -> str:
+        """Non-streaming completion. With `json_schema`, the reply is constrained to JSON matching it."""
+
+    @abstractmethod
     async def health(self) -> ProviderHealth: ...
 
     async def warmup(self) -> None:  # noqa: B027 - optional hook

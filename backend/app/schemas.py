@@ -73,6 +73,48 @@ class ConversationDetail(ConversationSummary):
     messages: list[MessageOut]
 
 
+# ---- memory ----
+MemoryKind = Literal["profile", "episodic", "semantic"]
+
+
+class MemoryOut(ORM):
+    id: uuid.UUID
+    kind: str
+    content: str
+    importance: float
+    project: str | None
+    source: str
+    source_conversation_id: uuid.UUID | None
+    event_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    last_used_at: datetime | None
+    use_count: int
+    similarity: float | None = None
+
+
+class MemoryCreate(BaseModel):
+    content: str = Field(min_length=3, max_length=400)
+    kind: MemoryKind = "profile"
+    importance: float = Field(default=0.8, ge=0, le=1)
+    project: str | None = Field(default=None, max_length=100)
+
+
+class MemoryUpdate(BaseModel):
+    content: str | None = Field(default=None, min_length=3, max_length=400)
+    kind: MemoryKind | None = None
+    importance: float | None = Field(default=None, ge=0, le=1)
+    project: str | None = Field(default=None, max_length=100)
+
+
+class SettingsOut(BaseModel):
+    memory_enabled: bool
+
+
+class SettingsUpdate(BaseModel):
+    memory_enabled: bool | None = None
+
+
 # ---- system ----
 class ProviderStatus(BaseModel):
     provider: str

@@ -4,9 +4,11 @@ import { floatToPcm16, SpeechPlayer } from "@/lib/audio";
 import { energy } from "@/lib/energy";
 import { describeMicError, MicInput } from "@/lib/mic";
 import { LokiSocket, type SocketStatus } from "@/lib/socket";
+import { useMemory } from "@/store/memory";
 import type {
   AssistantState,
   ConversationSummary,
+  MemoryRef,
   ModelsStatus,
   ServerEvent,
   UiMessage,
@@ -38,7 +40,9 @@ type ChatState = {
   voiceStatus: VoiceStatus | null;
   voiceSettings: VoiceSettings;
   lastVoiceMetrics: { stt_ms: number | null; first_audio_ms: number | null };
+  view: "assistant" | "memories";
 
+  setView: (v: "assistant" | "memories") => void;
   connect: (onUnauthorized: () => void) => void;
   disconnect: () => void;
   refreshConversations: () => Promise<void>;
@@ -75,6 +79,7 @@ let player: SpeechPlayer | null = null;
 let mic: MicInput | null = null;
 let pendingTts: { sample_rate: number } | null = null;
 let dropAudio = false; // set on barge-in / stop until the next reply starts
+let pendingRecall: MemoryRef[] | null = null; // memories announced for the reply that is about to start
 
 const initial = {
   socketStatus: "closed" as SocketStatus,
@@ -95,6 +100,7 @@ const initial = {
   playing: false,
   voiceStatus: null,
   lastVoiceMetrics: { stt_ms: null, first_audio_ms: null },
+  view: "assistant" as const,
 };
 
 /** What the visualiser and status labels show, derived from all the moving parts. */
@@ -168,14 +174,31 @@ export const useChat = create<ChatState>((set, get) => {
           set({ busy: true, assistantState: ev.state });
         }
         break;
+      case "memories_used":
+        if (ev.conversation_id === get().activeId) pendingRecall = ev.memories;
+        break;
+      case "memory_updated":
+        if (ev.conversation_id === get().activeId) {
+          set((s) => {
+            const idx = s.messages.findLastIndex((m) => m.role === "assistant");
+            if (idx < 0) return {};
+            const msgs = [...s.messages];
+            msgs[idx] = { ...msgs[idx], saved: [...(msgs[idx].saved ?? []), ...ev.operations] };
+            return { messages: msgs };
+          });
+        }
+        if (get().view === "memories") useMemory.getState().load();
+        break;
       case "stt_command":
         stopSpeech();
         break;
       case "stt_final":
         set((s) => ({ lastVoiceMetrics: { ...s.lastVoiceMetrics, stt_ms: ev.latency_ms } }));
         break;
-      case "assistant_start":
+      case "assistant_start": {
         dropAudio = false;
+        const recalled = pendingRecall ?? undefined;
+        pendingRecall = null;
         if (ev.conversation_id !== get().activeId) break;
         set((s) => ({
           lastModel: `${ev.provider} · ${ev.model}`,
@@ -195,10 +218,12 @@ export const useChat = create<ChatState>((set, get) => {
               first_token_ms: null,
               created_at: new Date().toISOString(),
               streaming: true,
+              recalled,
             },
           ],
         }));
         break;
+      }
       case "token":
         if (!player?.playing) energy.bump();
         set((s) => ({
@@ -208,7 +233,8 @@ export const useChat = create<ChatState>((set, get) => {
         break;
       case "assistant_end":
         set((s) => ({
-          messages: s.messages.map((m) => (m.id === ev.message.id ? { ...ev.message, streaming: false } : m)),
+          // merge, so client-only details (recalled memories) survive the final server copy
+          messages: s.messages.map((m) => (m.id === ev.message.id ? { ...m, ...ev.message, streaming: false } : m)),
         }));
         break;
       case "tts_chunk":
@@ -257,6 +283,8 @@ export const useChat = create<ChatState>((set, get) => {
   return {
     ...initial,
     voiceSettings: DEFAULT_VOICE,
+
+    setView: (view) => set({ view }),
 
     connect: (onUnauthorized) => {
       if (socket) return;
@@ -310,7 +338,7 @@ export const useChat = create<ChatState>((set, get) => {
     openConversation: async (id) => {
       if (get().busy) get().cancel();
       stopSpeech();
-      set({ activeId: id, loadingConversation: true, messages: [], error: null });
+      set({ activeId: id, loadingConversation: true, messages: [], error: null, view: "assistant" });
       try {
         const conv = await api.getConversation(id);
         if (get().activeId === id) {
@@ -324,7 +352,14 @@ export const useChat = create<ChatState>((set, get) => {
     newConversation: () => {
       if (get().busy) get().cancel();
       stopSpeech();
-      set({ activeId: null, activeIsTemporary: false, messages: [], error: null, assistantState: "idle" });
+      set({
+        activeId: null,
+        activeIsTemporary: false,
+        messages: [],
+        error: null,
+        assistantState: "idle",
+        view: "assistant",
+      });
     },
 
     send: (content) => {

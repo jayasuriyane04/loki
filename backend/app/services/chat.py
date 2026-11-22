@@ -3,6 +3,7 @@ import logging
 import time
 import uuid
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -14,6 +15,8 @@ from app.core.config import Settings
 from app.db.models import Conversation, Message, User
 from app.llm.base import ChatMessage, LLMError, StreamChunk
 from app.llm.router import LLMRouter, StreamStarted
+from app.memory import store
+from app.memory.service import MemoryService
 from app.schemas import ConversationSummary, MessageOut, WSUserMessage
 from app.services.prompts import build_system_prompt, title_from_message
 
@@ -51,10 +54,23 @@ def build_context(system_prompt: str, history: list[Message], char_budget: int) 
     return [ChatMessage(role="system", content=system_prompt), *picked]
 
 
+@dataclass
+class TurnResult:
+    """What post-turn work (memory extraction, compression) needs to know about a finished turn."""
+
+    conversation_id: uuid.UUID
+    temporary: bool
+    memory_on: bool
+    user_text: str
+    assistant_text: str
+    assistant_status: str
+
+
 class ChatService:
-    def __init__(self, llm: LLMRouter, settings: Settings) -> None:
+    def __init__(self, llm: LLMRouter, settings: Settings, memory: MemoryService | None = None) -> None:
         self.llm = llm
         self.settings = settings
+        self.memory = memory
 
     async def _resolve_conversation(
         self, db: AsyncSession, user: User, msg: WSUserMessage, send: Send
@@ -81,7 +97,7 @@ class ChatService:
         msg: WSUserMessage,
         send: Send,
         on_delta: Callable[[str, str], None] | None = None,
-    ) -> None:
+    ) -> TurnResult | None:
         """Run one user→assistant turn. `on_delta(message_id, text)` receives every streamed text piece (used for TTS)."""
         content = msg.content.strip()
         if not content:
@@ -96,14 +112,38 @@ class ChatService:
         await db.commit()
         await send({"type": "message_saved", "conversation_id": str(conv.id), "message": _dump(MessageOut, user_msg)})
 
-        rows = await db.scalars(
-            select(Message)
-            .where(Message.conversation_id == conv.id)
-            .order_by(Message.created_at.desc())
-            .limit(HISTORY_LOOKBACK)
-        )
+        q = select(Message).where(Message.conversation_id == conv.id)
+        if conv.summary_until is not None:  # older turns live in conv.summary
+            q = q.where(Message.created_at > conv.summary_until)
+        rows = await db.scalars(q.order_by(Message.created_at.desc()).limit(HISTORY_LOOKBACK))
         history = list(reversed(list(rows)))
-        system = build_system_prompt(user.display_name, voice=msg.input_mode == "voice")
+
+        # Temporary chats neither read nor write long-term memory; nor does a user who turned memory off.
+        memory_on = (
+            self.memory is not None
+            and self.settings.memory_extraction
+            and not conv.is_temporary
+            and await store.memory_enabled(db, user.id)
+        )
+        recall = None
+        if memory_on:
+            await send({"type": "state", "state": "retrieving"})
+            recall = await self.memory.recall(db, user, content)  # type: ignore[union-attr]
+            if recall.used:
+                await send(
+                    {
+                        "type": "memories_used",
+                        "conversation_id": str(conv.id),
+                        "memories": [{"id": str(m.id), "kind": m.kind, "content": m.content} for m in recall.used],
+                    }
+                )
+        system = build_system_prompt(
+            user.display_name,
+            voice=msg.input_mode == "voice",
+            memory_block=recall.block if recall else None,
+            conversation_summary=conv.summary,
+            temporary=conv.is_temporary,
+        )
         context = build_context(system, history, self.settings.context_char_budget)
 
         await send({"type": "state", "state": "processing"})
@@ -166,6 +206,8 @@ class ChatService:
                     "message": "The model returned no answer (it may have spent its output budget on reasoning).",
                 }
             )
+            return None
+        return TurnResult(conv.id, conv.is_temporary, memory_on, content, assistant.content, assistant.status)
 
     async def _finish(
         self,

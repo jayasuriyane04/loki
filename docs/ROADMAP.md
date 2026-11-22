@@ -6,7 +6,7 @@ Status key: ✅ done and tested · 🚧 in progress · ⏳ not started.
 |---|---|---|
 | 1 Foundation | Text assistant: auth, conversations, streaming chat, model abstraction (Ollama + Gemini), command-centre UI | ✅ see below |
 | 2 Voice | STT/TTS providers, WebSocket audio, VAD, barge-in, real amplitude visualiser | ✅ see below |
-| 3 Memory | Postgres + pgvector, Alembic, memory extraction/retrieval, memory manager UI, temporary chats | ⏳ |
+| 3 Memory | Postgres + pgvector, Alembic, memory extraction/retrieval, memory manager UI, temporary chats | ✅ see below |
 | 4 RAG | Ingestion worker, hybrid search, rerank, citations, knowledge-base UI | ⏳ |
 | 5 Agent + tools | LangGraph orchestrator, tool registry + permissions, reminders/tasks/notes, web research | ⏳ |
 | 6 Personalisation | Preferences, projects, schedules, proactive notifications | ⏳ |
@@ -62,6 +62,55 @@ Not verified / limitations
 - Transcription is per utterance (Whisper is not a streaming model): there are no live partial captions.
 - Voice and speed settings are stored in the browser (localStorage), not per account. That moves into user settings in Phase 6.
 - Only English Kokoro voices are offered in the picker; Whisper auto-detects other languages.
+
+## Phase 3 — memory (2026-11-22) ✅
+
+How it works
+- **Recall** (before each reply): embed the message (`qwen3-embedding:0.6b`, instruction-prefixed query) →
+  nearest memories, ranked by similarity plus small importance and recency boosts → plus always-on core profile
+  facts (importance ≥ 0.7) → plus dated events when the message says "yesterday", "last week", etc. "What do you
+  remember about me" recalls broadly, and the reply is told to answer only from the notes. Memories go into the
+  system prompt inside `<memory>`, labelled as data, not instructions.
+- **Extraction** (after each reply, in the background): the model proposes add/update/delete operations as
+  schema-constrained JSON, using the 10 most related existing memories (shown with short ids m1…m10). Then code-level guards
+  check them, because a 4B model does not reliably follow the rules on its own:
+  - secrets are redacted before the model sees the message, and rejected if they appear in a memory (regex + Luhn + entropy);
+  - a memory's new facts must come from the user's own *statements*: not from questions, and never from LOKI's reply;
+  - pure questions skip extraction entirely;
+  - an "update" that is really a different fact, drops details the user never mentioned, or just appends a new fact
+    to an old sentence is turned into a separate new memory. Nothing gets overwritten;
+  - near-duplicates (cosine ≥ 0.92) are not stored twice; identical rewrites are ignored.
+- **Working memory**: once a conversation exceeds about 75% of the context budget, older turns are summarised into
+  `conversations.summary`; the last 6 turns stay verbatim.
+- **Control**: Memory page (list, semantic search, add, edit, delete, delete all, on/off switch). Under each reply,
+  "Used N memories" shows what was recalled and "Saved/Updated/Forgot" chips show what changed. Temporary chats
+  neither read nor write memory; neither does a user who turned memory off.
+
+Verified
+- 83 backend tests pass, including the migrations and the exact failures seen in live runs as regression tests.
+- Live with the real models: across a 6-message introduction, LOKI stored 4 correct memories (profile, project, preference,
+  dated decision), skipped small talk ("I'm hungry") and the password, and correctly answered "what do you
+  remember", "what stack does Tarka use" and "what did we decide today" in new conversations. Guards rejected or
+  re-routed every bad operation the model proposed during those runs.
+- Browser: Saved/Used chips, Memory page listing, semantic search ("which programming language does my habit app
+  use" finds the Go/SQLite memories), editing, and secret rejection in the add form.
+
+PostgreSQL + pgvector (Docker, `pgvector/pgvector:pg16`: PostgreSQL 16.16, pgvector 0.8.7)
+- All 83 tests also pass on Postgres (`TEST_DATABASE_URL=…/loki_test`). The migrations create the HNSW cosine index.
+- Existing development data was copied from SQLite with `backend/scripts/sqlite_to_postgres.py`. Row counts were identical for
+  every table, and all 24 memories kept 1024-dim normalised vectors. `loki.db` is kept as a backup.
+- The live memory check was repeated on Postgres: same correct memories, and all three recall questions answered correctly.
+- Query plan: memory search filters by user first and sorts exactly (per-user sets are small). The HNSW index is
+  there for when memory counts grow; pgvector 0.8's iterative scans make filtered ANN searches work then.
+- Use `127.0.0.1` in `DATABASE_URL`: on this machine `localhost` tried IPv6 first and made every new connection
+  about 5× slower (test suite 4 min 19 s vs 47 s).
+
+Not done / limits
+- The 4B model can still blend separate facts in its *answer* (it once said Tarka uses Docker; the memory says
+  LOKI does) and embellish broad "what do you remember" answers. The stored memories stay correct.
+- Contradictions phrased without naming the old value ("I moved to Bengaluru", when Chennai is stored) are saved
+  as a second memory rather than replacing the first. That's safer than losing data, but needs manual tidying.
+- Embedding changes need a migration + re-embed; no admin tool for that yet.
 
 ## Model speed fix (2026-11-22) ✅
 Cause: Ollama saw both GPUs and picked the AMD Radeon 880M, because it borrows system RAM and reports 12 GB.

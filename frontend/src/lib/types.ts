@@ -30,8 +30,35 @@ export type Message = {
   created_at: string;
 };
 
+export type MemoryKind = "profile" | "episodic" | "semantic";
+
+export type Memory = {
+  id: string;
+  kind: MemoryKind;
+  content: string;
+  importance: number;
+  project: string | null;
+  source: "extracted" | "user_edited" | "summary";
+  source_conversation_id: string | null;
+  event_at: string | null;
+  created_at: string;
+  updated_at: string;
+  last_used_at: string | null;
+  use_count: number;
+  similarity: number | null;
+};
+
+export type MemoryRef = { id: string; kind: MemoryKind; content: string };
+export type MemoryOp = { action: "add" | "update" | "delete"; id: string; kind: MemoryKind; content: string };
+
 /** Client-side view of a message: adds transient flags that never come from the server. */
-export type UiMessage = Message & { streaming?: boolean; pending?: boolean; failed?: boolean };
+export type UiMessage = Message & {
+  streaming?: boolean;
+  pending?: boolean;
+  failed?: boolean;
+  recalled?: MemoryRef[]; // memories LOKI was given for this reply
+  saved?: MemoryOp[]; // memory changes made after this reply
+};
 
 export type ConversationDetail = ConversationSummary & { messages: Message[] };
 
@@ -77,7 +104,9 @@ export type AssistantState =
 export type ServerEvent =
   | { type: "conversation"; conversation: ConversationSummary }
   | { type: "message_saved"; conversation_id: string; message: Message }
-  | { type: "state"; state: "transcribing" | "processing" | "thinking" | "idle" }
+  | { type: "state"; state: "transcribing" | "retrieving" | "processing" | "thinking" | "idle" }
+  | { type: "memories_used"; conversation_id: string; memories: MemoryRef[] }
+  | { type: "memory_updated"; conversation_id: string; operations: MemoryOp[] }
   | { type: "stt_final"; text: string; language: string | null; latency_ms: number; audio_s: number }
   | {
       type: "tts_chunk";

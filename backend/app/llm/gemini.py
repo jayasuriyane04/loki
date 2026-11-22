@@ -84,6 +84,24 @@ class GeminiProvider(LLMProvider):
             completion_tokens=usage.get("candidatesTokenCount"),
         )
 
+    async def complete(
+        self, messages: list[ChatMessage], *, temperature: float, max_tokens: int, json_schema: dict | None = None
+    ) -> str:
+        if not self._api_key:
+            raise LLMError("GEMINI_API_KEY is not set.", provider=self.name)
+        payload = self._to_payload(messages, temperature, max_tokens)
+        if json_schema is not None:
+            payload["generationConfig"]["responseMimeType"] = "application/json"
+            payload["generationConfig"]["responseJsonSchema"] = json_schema
+        try:
+            resp = await self._client.post(f"/models/{self.model}:generateContent", json=payload, timeout=120)
+        except httpx.HTTPError as e:
+            raise LLMError(f"Gemini request failed ({type(e).__name__}).", provider=self.name) from e
+        if resp.status_code != 200:
+            raise LLMError(f"Gemini returned HTTP {resp.status_code}: {resp.text[:200]}", provider=self.name)
+        parts = ((resp.json().get("candidates") or [{}])[0].get("content") or {}).get("parts", [])
+        return "".join(p.get("text", "") for p in parts if not p.get("thought"))
+
     async def health(self) -> ProviderHealth:
         if not self._api_key:
             return ProviderHealth(self.name, self.model, False, None, "GEMINI_API_KEY is not set")

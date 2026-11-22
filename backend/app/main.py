@@ -8,12 +8,14 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import routes_auth, routes_conversations, routes_system, ws
+from app.api import routes_auth, routes_conversations, routes_memory, routes_system, ws
 from app.core.config import get_settings
 from app.core.logging import configure_logging, request_id_var
-from app.db.models import Base
+from app.db import migrate
 from app.db.session import engine
+from app.llm.embeddings import build_embeddings
 from app.llm.router import LLMRouter
+from app.memory.service import MemoryService
 from app.voice.manager import VoiceManager
 
 settings = get_settings()
@@ -23,11 +25,15 @@ log = logging.getLogger("loki")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    if settings.auto_migrate:
+        # Alembic's env runs its own event loop, so it gets a worker thread.
+        await asyncio.to_thread(migrate.upgrade, settings.database_url)
     app.state.llm = LLMRouter.from_settings(settings)
     # Background; never blocks start-up.
     warm = asyncio.create_task(app.state.llm.primary.warmup() if settings.llm_warmup else asyncio.sleep(0))
+    app.state.embeddings = build_embeddings(settings)
+    app.state.memory = MemoryService(app.state.llm, app.state.embeddings, settings)
+    app.state.background = set()  # post-turn memory tasks
     app.state.voice = VoiceManager.from_settings(settings)
     app.state.voice.start()  # loads STT/TTS in the background; the API is usable immediately
     log.info(
@@ -42,6 +48,10 @@ async def lifespan(app: FastAPI):
     )
     yield
     warm.cancel()
+    for t in list(app.state.background):
+        t.cancel()
+    await asyncio.gather(*app.state.background, return_exceptions=True)
+    await app.state.embeddings.aclose()
     await app.state.voice.stop()
     await app.state.llm.aclose()
     await engine.dispose()
@@ -80,5 +90,6 @@ async def request_context(request: Request, call_next):
 
 app.include_router(routes_auth.router)
 app.include_router(routes_conversations.router)
+app.include_router(routes_memory.router)
 app.include_router(routes_system.router)
 app.include_router(ws.router)
