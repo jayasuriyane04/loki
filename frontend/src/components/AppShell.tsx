@@ -9,6 +9,8 @@ import { KnowledgeBase } from "./KnowledgeBase";
 import { MemoryManager } from "./MemoryManager";
 import { Toasts } from "./Notifications";
 import { Planner } from "./Planner";
+import { ProjectsPage } from "./ProjectsPage";
+import { SettingsPage } from "./SettingsPage";
 import { ToolsPage } from "./ToolsPage";
 import { SidePanel } from "./SidePanel";
 import { TopBar } from "./TopBar";
@@ -54,6 +56,10 @@ export function AppShell() {
             <Planner />
           ) : view === "tools" ? (
             <ToolsPage />
+          ) : view === "projects" ? (
+            <ProjectsPage />
+          ) : view === "settings" ? (
+            <SettingsPage />
           ) : (
             <AssistantView />
           )}

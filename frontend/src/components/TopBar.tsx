@@ -16,7 +16,7 @@ function Dot({ tone }: { tone: "ok" | "warn" | "bad" | "off" }) {
 export function TopBar({ onMenu }: { onMenu: () => void }) {
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
-  const { socketStatus, models, modelsError, lastModel, mic, voiceStatus } = useChat();
+  const { socketStatus, models, modelsError, lastModel, mic, voiceStatus, view, setView } = useChat();
   const shown = useChat(visualState);
   const [panel, setPanel] = useState(false);
   const closePanel = useCallback(() => setPanel(false), []);
@@ -81,10 +81,11 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
         </div>
         <NotificationBell />
         <button
-          disabled
-          className="rounded-md p-1.5 text-faint opacity-50"
-          title="Settings — Phase 6"
-          aria-label="Settings (coming later)"
+          onClick={() => setView(view === "settings" ? "assistant" : "settings")}
+          className={`rounded-md p-1.5 hover:text-ink ${view === "settings" ? "text-cyan" : "text-dim"}`}
+          title="Settings"
+          aria-label="Settings"
+          aria-current={view === "settings" ? "page" : undefined}
         >
           <Settings size={17} />
         </button>

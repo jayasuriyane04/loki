@@ -113,13 +113,24 @@ All user-owned (`user_id` cascade, indexed); every row records `created_by` = `u
 - **user_settings** + `timezone` (IANA, from the browser), `tool_prefs json` (`{tool: "confirm"|"off"}`).
 - **messages** + `tool_steps json`: the tool calls behind a reply (replayed into later context).
 
-## Phase 6 — Personalisation and proactive ⏳
-- **projects**: `id, user_id, name, summary, status`.
-- **schedules**: `id, user_id, kind, cron, enabled, config jsonb, last_run_at`.
-- **notifications**: `id, user_id, title, body, read_at, created_at`.
+## Phase 6 — Personalisation and proactive ✅ (migrations `0005`, `0006`)
+- **projects** (new): `id, user_id (cascade), name (unique per user), description, status (active|paused|done),
+  overview (written by LOKI on request), overview_at, created_at, updated_at`. Projects are also derived from the
+  `project` tag on tasks, notes, memories, documents and conversations; a row is created for each tag on first listing.
+- **user_settings** + `preferences json`: `{style, voice, proactive, quiet_hours, background_processing}`, validated by
+  `app/personal/preferences.py` (unknown keys are dropped, defaults filled in).
+- **conversations** + `project` (detected project) and `digested_at` (when the conversation summary was last written).
+- **tasks** + `alerted_at`, **events** + `alerted_at`: proactive alerts go out once.
+- **notifications** + `data json` (e.g. `{task_id, project}`) and `delivered bool` (false = held during quiet hours;
+  hidden from the API until released). `kind` adds `deadline | event | briefing | folder`.
+- **documents** + `watch_root` (`0006`): absolute folder a document is mirrored from; null for uploads.
+- **memories**: conversation summaries are `kind = episodic`, `source = summary`, `source_conversation_id` set,
+  `event_at` = when the conversation ended.
+
+No separate schedules table: jobs are fixed timers in the API process, and what they do is controlled by preferences.
 
 ## Migrations
-Alembic, in `backend/migrations/` (`0001` = Phase 1 baseline, `0002` = memory, `0003` = knowledge base, `0004` = agent and tools). They run automatically
+Alembic, in `backend/migrations/` (`0001` = Phase 1 baseline, `0002` = memory, `0003` = knowledge base, `0004` = agent and tools, `0005`/`0006` = personalisation). They run automatically
 at start-up (`AUTO_MIGRATE=true`) or manually:
 ```powershell
 cd backend; .\.venv\Scripts\python.exe -m alembic upgrade head

@@ -21,6 +21,10 @@ from app.llm.base import ChatMessage, LLMError, StreamChunk, ToolCall
 from app.llm.router import LLMRouter, StreamStarted
 from app.memory import store
 from app.memory.service import MemoryService
+from app.personal.preferences import load as load_preferences
+from app.personal.preferences import style_block
+from app.personal.projects import briefing as project_briefing
+from app.personal.projects import resolve_project
 from app.schemas import ConversationSummary, MessageOut, WSUserMessage
 from app.services.prompts import build_system_prompt, title_from_message, tools_guidance
 from app.tools.base import ToolContext, ToolError
@@ -226,6 +230,21 @@ class ChatService:
         user_settings = await db.get(UserSettings, user.id)
         tz = user_settings.timezone if user_settings else "UTC"
         prefs = user_settings.tool_prefs if user_settings else None
+        personal = await load_preferences(db, user.id)
+
+        # Project context: named in the message, referred to by time ("the project we discussed yesterday"),
+        # or already linked to this conversation.
+        project = await resolve_project(db, user.id, content, conv)
+        project_block = None
+        if project:
+            if conv.project != project:
+                conv.project = project
+                await db.commit()
+                await send({"type": "project", "conversation_id": str(conv.id), "project": project})
+            project_block = await project_briefing(
+                db, user.id, project, include_memories=memory_on,
+                exclude_memory_ids={m.id for m in recall.used} if recall else set(), allow_empty=True,
+            )
         use_tools = self.settings.tools_enabled and approvals is not None
         system = build_system_prompt(
             user.display_name,
@@ -236,6 +255,8 @@ class ChatService:
             temporary=conv.is_temporary,
             timezone=tz,
             tools_block=tools_guidance() if use_tools else None,
+            style_block=style_block(personal, user.display_name),
+            project_block=project_block,
         )
         context = build_context(system, history, self.settings.context_char_budget)
 

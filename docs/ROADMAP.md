@@ -9,7 +9,7 @@ Status key: ✅ done and tested · 🚧 in progress · ⏳ not started.
 | 3 Memory | Postgres + pgvector, Alembic, memory extraction/retrieval, memory manager UI, temporary chats | ✅ see below |
 | 4 RAG | Ingestion worker, hybrid search, rerank, citations, knowledge-base UI | ✅ see below |
 | 5 Agent + tools | LangGraph orchestrator, tool registry + permissions, reminders/tasks/notes, web research | ✅ see below |
-| 6 Personalisation | Preferences, projects, schedules, proactive notifications | ⏳ |
+| 6 Personalisation | Preferences, projects, schedules, proactive notifications | ✅ see below |
 | 7 Eval + deploy | Langfuse, eval datasets, metrics dashboard, Docker deployment | ⏳ |
 
 ## Phase 1 — scope
@@ -60,8 +60,88 @@ Not verified / limitations
 - Not tested with a physical microphone or speakers (this test browser has neither). Echo: browser echo
   cancellation is on, but without headphones LOKI may hear itself and interrupt its own reply. Test this.
 - Transcription is per utterance (Whisper is not a streaming model): there are no live partial captions.
-- Voice and speed settings are stored in the browser (localStorage), not per account. That moves into user settings in Phase 6.
+- Voice and speed settings are saved to the account since Phase 6 (the browser keeps a copy).
 - Only English Kokoro voices are offered in the picker; Whisper auto-detects other languages.
+
+## Phase 6 — personalisation and proactive features (2026-11-22) ✅
+
+What was built
+- **Preferences** (`app/personal/preferences.py`, Settings page), validated JSON on `user_settings.preferences`:
+  - Replies: length (brief / balanced / detailed), tone, a fixed reply language, Markdown on or off, and your own
+    instructions (≤1,000 characters).
+  - Instructions go into the system prompt inside `<user_instructions>` and rank below LOKI's rules on honesty,
+    safety and approvals. A closing tag inside them is neutralised.
+  - Default settings add nothing to the prompt.
+  - Voice settings (voice, speed, speak typed replies) are now saved to the account and applied when the WebSocket
+    connects.
+- **"What LOKI has picked up"**: preference-like profile memories plus your most-used tools (30 days). They are
+  shown in Settings and editable on the Memory page.
+- **Projects** (`app/personal/projects.py`, Projects page):
+  - First-class projects with a description, a status, and an overview LOKI writes on request.
+  - Projects also come from any project tag on tasks, notes, memories, documents or conversations.
+  - Detection: naming a project ("let's continue Tarka") or a time reference ("the project we discussed
+    yesterday", which picks the most recent conversation with a project in that window).
+  - The conversation is then tagged, a chip shows the project, and a `<project>` briefing goes into the prompt: your
+    description, LOKI's overview, project memories, open tasks, notes and files.
+- **Conversation summaries** (`app/personal/digest.py`): once a conversation has been quiet for 15 minutes (at least
+  4 messages), LOKI writes a 1–3 sentence dated episodic memory of it: topic, decisions, problems, open items.
+  - It replaces the earlier summary if the conversation continues.
+  - Secrets are redacted before and checked after.
+  - Small talk is skipped ("NOTHING").
+  - This is the only proactive job that uses the model.
+- **Proactive scheduler** (`app/agent/notify.py`, replaces the reminder poller). Each job runs on its own timer; none
+  keeps the model busy:
+  - reminders (every 15 s)
+  - deadline alerts (before due and when overdue, once per task)
+  - event heads-up with related documents found by search (no LLM)
+  - a daily briefing at your local time (calendar, due and overdue tasks, reminders, weather if you add a place;
+    once a day)
+  - conversation summaries (every 5 min)
+  - watched folders
+  - release of held notifications
+- **Quiet hours**: alerts, briefings and folder notices are held (`delivered = false`) and arrive when quiet hours
+  end. Reminders you set always arrive on time.
+- **Background processing switch**: one switch turns off every proactive job.
+- **Watched folders** (`app/personal/folders.py`): add a local folder and a project in Settings. LOKI scans it at the
+  chosen interval:
+  - Changed files (mtime and size, then SHA-256) are re-ingested; new files are indexed; deleted files' documents
+    are removed.
+  - You get one "files changed" notification. The first scan is silent.
+  - It reads only types the knowledge base accepts, skips `.env`/key files, symlinks, `.git`, `node_modules`,
+    virtualenvs and build folders, and never writes to the folder.
+
+Problems found while testing live, and fixes
+| Problem | Fix |
+|---|---|
+| Project overview invented plans ("adding authentication, a frontend") that appear nowhere | Overview is built from file excerpts, not only file names; stricter prompt; when no tasks exist the model is told not to mention plans or next steps |
+| "Can we pick up the project from earlier? Remind me what the sync interval is." found no documents: the cross-encoder scores the whole message and the filler pushed the right passage under the threshold | Retrieval also searches each substantive sentence with lead-ins ("remind me", "can you tell me") removed and keeps the best score per passage |
+| The same message was treated as a reminder request ("remind me what…") | "Remind me what/how/who/…" is a question, not a reminder |
+
+Verified
+- **172 backend tests** pass on SQLite and on Postgres, including 14 new Phase 6 tests:
+  - preferences: merge, validation, no half-saves, prompt shaping, the instruction block can't be closed early
+  - projects: detection, briefing, the time reference, tags becoming projects, 409/404
+  - summaries: written once, and respecting the opt-out
+  - deadlines: held in quiet hours, then released and pushed
+  - reminders ignore quiet hours; the master switch stops jobs
+  - the briefing goes out once a day; the event heads-up names related documents
+  - watched folders: index, update, remove, notify, skip `.env` and `node_modules`; a missing folder is reported
+- **Live with the real model and Postgres:**
+  - migrations 0005 and 0006 applied at start-up
+  - the Streak overview is grounded in the handbook and code
+  - "Let's get back to Streak…" shows the project chip and a brief cited answer (3.3 s)
+  - "the project we talked about earlier" resolves to Streak and answers "every 15 minutes [1]" (2.4 s)
+  - the scheduler delivered a daily briefing
+
+Limits
+- Project and time detection is pattern-based (English); a project is only recognised once it exists (created, or
+  used as a tag).
+- Watched folders are scanned only while the backend runs. Deleting a watched document in the knowledge base brings
+  it back at the next scan (remove the folder in Settings first). At most 2,000 files per folder.
+- Conversation summaries come from a 4B model; check them on the Memory page.
+- Notifications reach open LOKI tabs and the desktop only (no phone push).
+- Not verified live: a deadline alert or event heads-up with the real clock, and a watched folder on your own
+  projects. Both are covered by tests only.
 
 ## Phase 5 — agent and tools (2026-11-22) ✅
 
@@ -175,7 +255,7 @@ Limits
   Citations are checked for existence, not entailment.
 - Scanned PDFs (images) aren't read (no OCR). DOCX isn't supported yet.
 - The reranker is English-oriented; other languages still retrieve via embeddings and keywords, but rank less precisely.
-- Ingestion runs inside the API process; a separate worker (and Redis queue) is planned with scheduled jobs in Phase 6.
+- Ingestion runs inside the API process (Phase 6 kept scheduled jobs in-process too: Celery has no Windows support, and one machine needs no queue).
 
 ## Phase 3 — memory (2026-11-22) ✅
 

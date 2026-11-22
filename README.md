@@ -2,12 +2,14 @@
 
 A voice-first, memory-backed, tool-using personal AI assistant, built in phases.
 
-**Current status: Phases 1–5 done.** LOKI is a text **and voice** assistant with long-term memory, a personal
+**Current status: Phases 1–6 done.** LOKI is a text **and voice** assistant with long-term memory, a personal
 knowledge base with cited answers, and an agent that uses tools. It can search the web and read pages, check the
 weather, manage tasks, reminders, notes and a calendar, search your files and code, and run approved dev commands and
 apps. Anything destructive asks you first. Everything runs locally: Whisper on the GPU, Kokoro speech, Ollama for the
-chat and embedding models, an ONNX reranker, PostgreSQL + pgvector and SearXNG in Docker. Personalisation and
-proactive features (Phase 6) are next. See [docs/ROADMAP.md](docs/ROADMAP.md).
+chat and embedding models, an ONNX reranker, PostgreSQL + pgvector and SearXNG in Docker. Phase 6 adds settings
+(reply style, your own instructions, voice on the account), projects LOKI recognises in conversation, dated
+conversation summaries, and opt-in background features: deadline and event alerts, a daily briefing, quiet hours and
+watched project folders. Evaluation and deployment (Phase 7) are next. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 | Doc | Contents |
 |---|---|

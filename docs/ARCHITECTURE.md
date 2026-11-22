@@ -96,8 +96,8 @@ changing the providers.
 | C | Agent engine | LangGraph state graph: `understand → retrieve → plan → (tool loop: select → validate → execute → verify) → respond → memorise`. Specialist "modes" are subgraphs, not separate LLMs | 5 |
 | D | Tools | Registry of typed tools (Pydantic input schema, timeout, permission level, audit log). Levels: `read`, `reversible`, `confirm`. Shell = allowlist + explicit approval | 5 |
 | E | RAG | ingest → extract → clean → structure-aware chunking → metadata → embed → pgvector + Postgres FTS (hybrid, RRF) → rerank (cross-encoder) → cited context | 4 |
-| F | Personalisation | Explicit, editable preferences table + learned profile memories; injected into system prompt | 6 |
-| G | Proactive | User-configured schedules only; worker runs jobs, LLM called only when a job fires | 6 |
+| F | Personalisation | Validated preferences JSON (style, voice, proactive, quiet hours) + learned profile memories; style and a `<project>` briefing (detected by name or time reference) are injected into the system prompt | 6 ✅ |
+| G | Proactive | In-process `ProactiveScheduler`: fixed-interval jobs (reminders, deadlines, event heads-up, daily briefing, conversation summaries, watched folders, quiet-hours release), all gated by user preferences and a master switch; only summaries call the LLM | 6 ✅ |
 | H | Evaluation | Per-message latency/tokens already stored in Phase 1; Langfuse traces; offline eval sets for RAG/tools | 7 |
 
 ## 3. Trust boundaries (prompt-injection defence)
@@ -126,11 +126,11 @@ changing the providers.
 | Docker Desktop (installed for Phase 3) | Postgres 16 + pgvector run in Docker (`docker compose up -d postgres`). SQLite still works for quick dev/tests (vector search runs in Python there). | Use `127.0.0.1`, not `localhost`, in `DATABASE_URL` (IPv6 fallback made connections about 5× slower). Redis is defined but not used yet. |
 | Ollama defaults to the AMD iGPU (it reports more memory) | 3.6× slower generation | Solved: `scripts/start-ollama.ps1` runs LOKI's Ollama on port 11435 with the AMD GPU hidden. |
 | Local model is `qwen3:4b-instruct` (4B) | Fast (about 0.2 s to first token) and tool-capable, but weaker at long multi-step reasoning. | RTX 5060 (8 GB) can run 7–8B models (`qwen3:8b`, 5.2 GB) next to Whisper; configure Gemini as a fallback for heavy agentic work. |
-| Celery has no official Windows support | Background work (document ingestion, the reminder scheduler) runs as in-process async tasks; both survive restarts via database state. | A separate worker (arq on Redis) if scheduled jobs grow in Phase 6. |
+| Celery has no official Windows support | Background work (document ingestion, the reminder scheduler) runs as in-process async tasks; both survive restarts via database state. Phase 6 jobs also run in-process (`ProactiveScheduler`); a separate worker only if they outgrow one machine. |
 | Windows has no IANA timezone database | `zoneinfo` fails without it. | `tzdata` package (Phase 5). |
 | Ollama's default 4,096-token context | Long prompts (memory + documents + tools) were silently truncated. | `OLLAMA_NUM_CTX=12288` on every request and on warm-up. |
 | No cloud API keys set | Only Ollama works today. | Add `GEMINI_API_KEY` (LLM), `DEEPGRAM_API_KEY`, `ELEVENLABS_API_KEY` (voice) when ready; all optional. |
-| Proactive notifications | Browser must be open, or use Web Push. | Web Push (VAPID) in Phase 6. |
+| Proactive notifications | Reach open LOKI tabs and desktop notifications only; quiet hours hold them server-side. | Web Push (VAPID) later. |
 
 ## 6. External services and credentials
 

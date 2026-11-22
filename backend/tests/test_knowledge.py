@@ -250,3 +250,23 @@ def test_temporary_chats_still_use_documents(client: TestClient, user: dict, fak
         _turn(ws, "How are passwords hashed in Tarka?", temporary=True)
     system = fake.calls[-1][0].content
     assert "Argon2id" in system and "temporary conversation" in system
+
+
+def test_focus_queries_split_conversational_messages():
+    from app.knowledge.service import focus_queries
+
+    q = "Can we pick up the project we talked about earlier? Remind me what the sync interval is."
+    assert focus_queries(q) == ["Can we pick up the project we talked about earlier?", "what the sync interval is."]
+    assert focus_queries("what is the sync interval") == []  # already a plain question
+    assert focus_queries("Can you tell me how the sync works?") == ["how the sync works?"]
+    assert focus_queries("Hi. Thanks!") == []  # nothing substantive
+
+
+def test_buried_question_still_finds_the_passage(client: TestClient, user: dict, fake: FakeProvider):
+    doc = "# Handbook\n\n## Sync\nThe backend syncs to the phone every 15 minutes.\n\n## Colours\nThe theme is dark blue.\n"
+    _upload(client, {"handbook.md": doc.encode()})
+    _wait_ready(client, 1)
+    with client.websocket_connect("/ws") as ws:
+        _turn(ws, "Can we pick up where we left off with everything from before, please? "
+                  "Anyway: how often does the backend sync to the phone?")
+    assert "every 15 minutes" in fake.calls[-1][0].content

@@ -1,4 +1,11 @@
 import type {
+  FolderScan,
+  Learned,
+  Preferences,
+  PreferencesPatch,
+  ProjectDetail,
+  ProjectInfo,
+  ProjectStatus,
   AppNotification,
   EventItem,
   NoteItem,
@@ -141,4 +148,17 @@ export const api = {
   settings: () => request<{ memory_enabled: boolean }>("/api/settings"),
   updateSettings: (body: { memory_enabled: boolean }) =>
     request<{ memory_enabled: boolean }>("/api/settings", { method: "PATCH", body: json(body) }),
+  preferences: () => request<Preferences>("/api/preferences"),
+  updatePreferences: (patch: PreferencesPatch) =>
+    request<Preferences>("/api/preferences", { method: "PATCH", body: json(patch) }),
+  learned: () => request<Learned>("/api/preferences/learned"),
+  scanFolder: (path: string) => request<FolderScan>("/api/watched-folders/scan", { method: "POST", body: json({ path }) }),
+  projectsOverview: () => request<ProjectInfo[]>("/api/projects-overview"),
+  project: (name: string) => request<ProjectDetail>(`/api/projects/${encodeURIComponent(name)}`),
+  createProject: (body: { name: string; description?: string | null }) =>
+    request<ProjectInfo>("/api/projects", { method: "POST", body: json(body) }),
+  updateProject: (name: string, body: { description?: string | null; status?: ProjectStatus }) =>
+    request<ProjectInfo>(`/api/projects/${encodeURIComponent(name)}`, { method: "PATCH", body: json(body) }),
+  generateOverview: (name: string) =>
+    request<ProjectInfo>(`/api/projects/${encodeURIComponent(name)}/overview`, { method: "POST" }),
 };

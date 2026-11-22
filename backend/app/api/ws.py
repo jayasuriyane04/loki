@@ -16,6 +16,7 @@ from app.agent.graph import Approvals
 from app.db.models import Conversation, User, UserSettings
 from app.db.session import SessionLocal
 from app.memory.service import MemoryService
+from app.personal.preferences import load as load_preferences
 from app.schemas import WSAudioUtterance, WSControl, WSUserMessage, WSVoiceConfig
 from app.services.chat import ChatService, TurnError, TurnResult
 from app.voice.base import VoiceError
@@ -50,7 +51,10 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     approvals = Approvals()
     background: set[asyncio.Task[None]] = ws.app.state.background
     voice: VoiceManager = ws.app.state.voice
-    voice_cfg = WSVoiceConfig(type="voice_config", voice=settings.tts_voice, speed=settings.tts_speed)
+    async with SessionLocal() as db:  # the account's saved voice settings; the client may override per session
+        vp = (await load_preferences(db, user_id)).voice
+    voice_cfg = WSVoiceConfig(type="voice_config", voice=vp.voice or settings.tts_voice, speed=vp.speed,
+                              speak_text_replies=vp.speak_text_replies)
     send_lock = asyncio.Lock()
     current: asyncio.Task[None] | None = None
     pending_audio: WSAudioUtterance | None = None

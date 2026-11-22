@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import current_user
 from app.core.config import get_settings
-from app.db.models import Chunk, Document, Memory, User
+from app.db.models import Chunk, Document, User
 from app.db.session import get_db
 from app.knowledge.extract import UploadRejected, classify, clean_source
 from app.knowledge.ingest import Ingestor
@@ -200,11 +200,3 @@ async def knowledge_status(request: Request, user: User = Depends(current_user),
         "embedding_model": request.app.state.embeddings.model,
         "reranker": {"model": rr.name if rr else None, "state": rr.state if rr else "disabled", "error": rr.error if rr else None},
     }
-
-
-@router.get("/projects")
-async def list_projects(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    """Project names used by documents or memories, for pickers."""
-    docs = await db.scalars(select(Document.project).where(Document.user_id == user.id, Document.project != "").distinct())
-    mems = await db.scalars(select(Memory.project).where(Memory.user_id == user.id, Memory.project.is_not(None)).distinct())
-    return sorted({*docs, *mems}, key=str.lower)

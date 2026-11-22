@@ -114,7 +114,8 @@ _QUOTED = re.compile(r"[“\"']([^”\"']{2,80})[”\"']")
 _REQUESTS = [
     (re.compile(r"\b(save|store|write)\b.{0,60}\b(note|summary|report)\b|\bas a note\b", re.I), "create_note"),
     (re.compile(r"\b(notify|ping|alert) me\b|\blet me know when\b", re.I), "notify_user"),
-    (re.compile(r"\bremind me\b", re.I), "create_reminder"),
+    # "remind me what/how ..." asks for information, not a reminder.
+    (re.compile(r"\bremind me\b(?!,?\s+(what|how|who|why|where|which|whether|if|of)\b)", re.I), "create_reminder"),
     (re.compile(r"\badd\b.{0,60}\b(to )?(my )?(task|to-?do)s?\b", re.I), "create_task"),
     (re.compile(r"\b(add|put|schedule)\b.{0,60}\b(calendar|event|meeting)\b", re.I), "create_event"),
 ]

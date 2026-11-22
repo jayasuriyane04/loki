@@ -260,13 +260,14 @@ class NotificationOut(Out):
     kind: str
     title: str
     body: str | None
+    data: dict | None = None
     read_at: datetime | None
     created_at: datetime
 
 
 @router.get("/notifications", response_model=list[NotificationOut])
 async def list_notifications(unread: bool = False, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    q = select(Notification).where(Notification.user_id == user.id)
+    q = select(Notification).where(Notification.user_id == user.id, Notification.delivered.is_(True))  # not held
     if unread:
         q = q.where(Notification.read_at.is_(None))
     return list(await db.scalars(q.order_by(Notification.created_at.desc()).limit(100)))

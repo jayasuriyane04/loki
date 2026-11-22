@@ -98,6 +98,8 @@ def build_system_prompt(
     temporary: bool = False,
     timezone: str = "UTC",
     tools_block: str | None = None,
+    style_block: str | None = None,
+    project_block: str | None = None,
 ) -> str:
     try:
         tz = ZoneInfo(timezone)
@@ -110,12 +112,16 @@ def build_system_prompt(
     if tools_block is not None:
         parts.append(TOOLS_GUIDANCE.format(name=display_name, tz=tz.key, automation=tools_block,
                                            calendar=date_table(local)))
+    if style_block:
+        parts.append("\n\n" + style_block)
     if voice:
         parts.append(VOICE_ADDENDUM.format(name=display_name))
     if temporary:
         parts.append(TEMPORARY_ADDENDUM)
     if conversation_summary:
         parts.append(f"\n\nEarlier in this conversation (summarised):\n{conversation_summary}")
+    if project_block:
+        parts.append("\n\n" + project_block)
     if memory_block:
         parts.append("\n\n" + memory_block)
     if documents_block:

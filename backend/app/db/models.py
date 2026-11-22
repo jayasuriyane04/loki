@@ -86,6 +86,8 @@ class Conversation(Base):
     # before `summary_until` are no longer sent to the model verbatim.
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     summary_until: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    project: Mapped[str | None] = mapped_column(String(100), nullable=True)  # detected from what was discussed
+    digested_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)  # episodic digest written
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 
@@ -130,6 +132,7 @@ class UserSettings(Base):
     memory_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")  # IANA name, from the browser
     tool_prefs: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # {tool: "auto" | "confirm" | "off"}
+    preferences: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # see app/personal/preferences.py
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
 
 
@@ -170,6 +173,7 @@ class Task(Base):
     due_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     created_by: Mapped[str] = mapped_column(String(8), default="user")  # user | loki
+    alerted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)  # deadline alert sent
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
 
@@ -214,6 +218,7 @@ class Event(Base):
     location: Mapped[str | None] = mapped_column(String(300), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[str] = mapped_column(String(8), default="user")
+    alerted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)  # heads-up sent
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 
@@ -225,6 +230,8 @@ class Notification(Base):
     kind: Mapped[str] = mapped_column(String(16))  # reminder | agent | system
     title: Mapped[str] = mapped_column(String(300))
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    data: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # e.g. {"project": "Tarka"}
+    delivered: Mapped[bool] = mapped_column(Boolean, default=True)  # False = held back (quiet hours)
     read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 
@@ -251,6 +258,23 @@ class ToolExecution(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 
 
+class Project(Base):
+    """A project the user works on. Other records refer to it by name (tasks, notes, memories, documents)."""
+
+    __tablename__ = "projects"
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_projects_user_name"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(10), default="active")  # active | paused | done
+    overview: Mapped[str | None] = mapped_column(Text, nullable=True)  # LLM-written, on request
+    overview_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
+
+
 class Document(Base):
     """An uploaded file in the user's knowledge base. Identity is (user, project, source path)."""
 
@@ -271,6 +295,8 @@ class Document(Base):
     chunk_count: Mapped[int] = mapped_column(Integer, default=0)
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     storage_path: Mapped[str] = mapped_column(String(500))
+    # Absolute folder this document is mirrored from (watched folders); None = uploaded.
+    watch_root: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
     indexed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

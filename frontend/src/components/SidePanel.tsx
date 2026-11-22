@@ -17,10 +17,7 @@ import {
 import { useState } from "react";
 import { useChat } from "@/store/chat";
 
-const UPCOMING = [
-  { icon: FolderKanban, label: "Projects", phase: 6 },
-  { icon: ChartColumn, label: "Analytics", phase: 7 },
-];
+const UPCOMING = [{ icon: ChartColumn, label: "Analytics", phase: 7 }];
 
 function groupLabel(iso: string): string {
   const d = new Date(iso);
@@ -145,6 +142,7 @@ export function SidePanel({ onNavigate }: { onNavigate?: () => void }) {
       <div className="border-t border-line p-2">
         {(
           [
+            ["projects", FolderKanban, "Projects"],
             ["planner", ListTodo, "Planner"],
             ["memories", Brain, "Memory"],
             ["knowledge", BookOpen, "Knowledge base"],

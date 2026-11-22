@@ -154,5 +154,30 @@ WebSocket additions
 {"type": "notification", "notification": {"id", "kind": "reminder|agent|system", "title", "body", "created_at"}}
 ```
 
+## Personalisation and projects — Phase 6 ✅
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/preferences` | `{style, voice, proactive, quiet_hours, background_processing}` with defaults filled in |
+| PATCH | `/api/preferences` | partial; nested objects are merged. `422` lists every invalid field and nothing is saved |
+| GET | `/api/preferences/learned` | `{preference_memories: [{id, content}], top_tools: [{tool, count}]}` (30 days) |
+| POST | `/api/watched-folders/scan` | `{path}`: scan a folder already in `proactive.watched_folders` now → `{added, updated, removed, skipped}`; `404` if not configured, `422` if missing |
+| GET | `/api/projects` | names in use anywhere (pickers) |
+| GET | `/api/projects-overview` | `[{name, description, status, overview, overview_at, counts: {open_tasks, notes, memories, documents, conversations}, last_activity}]` |
+| POST | `/api/projects` | `{name, description?}` → `201`; `409` if the name exists (case-insensitive, tags included) |
+| GET | `/api/projects/{name}` | summary + `tasks, notes, memories, documents, conversations` |
+| PATCH | `/api/projects/{name}` | `{description?, status?: active\|paused\|done}` |
+| POST | `/api/projects/{name}/overview` | LOKI writes an overview from the project's material (on request only); `422` if there is none, `503` if the model is down |
+
+Notifications now carry `data` (e.g. `{task_id, project}`), and `kind` adds `deadline | event | briefing | folder`.
+Notifications held during quiet hours are hidden until released.
+
+WebSocket additions
+```jsonc
+// server → client: the conversation was linked to a project (named, or "the project we discussed yesterday")
+{"type": "project", "conversation_id": "…", "project": "Tarka"}
+```
+Conversation summaries include `project`. On connect, the server applies the account's saved voice settings;
+`voice_config` from the client still overrides them for that connection.
+
 ## Planned
 - Phase 7: `/api/metrics`.

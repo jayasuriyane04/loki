@@ -30,6 +30,8 @@ def test_explicitly_requested_actions_are_tracked():
     assert unfulfilled_requests("add milk to my tasks", [], offered) == ["create_task"]
     assert unfulfilled_requests("what's the weather?", [], offered) == []
     assert unfulfilled_requests("save a note", [], {"web_search"}) == []  # tool switched off: not demanded
+    assert unfulfilled_requests("remind me what the sync interval is", [], offered) == []  # a question, not a reminder
+    assert unfulfilled_requests("remind me about the dentist tomorrow", [], offered) == ["create_reminder"]
 
 
 def test_notification_claims_need_notify_user():

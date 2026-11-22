@@ -161,6 +161,7 @@ def client(fake: FakeProvider):
         app.state.memory = MemoryService(app.state.llm, app.state.embeddings, get_settings())
         app.state.ingestor.embeddings = app.state.embeddings
         app.state.knowledge = KnowledgeService(app.state.embeddings, FakeReranker(), get_settings())
+        app.state.scheduler.services.update(llm=app.state.llm, embeddings=app.state.embeddings, knowledge=app.state.knowledge)
         yield c
 
 

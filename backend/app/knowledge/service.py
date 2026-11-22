@@ -58,6 +58,39 @@ def attach_citations(sources: list[dict], answer: str) -> tuple[list[dict], list
     return sources, sorted(used - valid)
 
 
+_SENTENCE = re.compile(r"(?<=[.?!])\s+|\n+")
+_FILLER = {"can", "could", "we", "you", "i", "me", "the", "a", "an", "and", "to", "of", "it", "is", "what", "that",
+           "this", "let", "lets", "let's", "please", "again", "about", "on", "pick", "up", "continue", "back", "get"}
+
+
+# Conversational lead-ins that carry no content but drag the cross-encoder score down.
+_LEADIN = re.compile(
+    r"^(?:(?:hey|hi|ok(?:ay)?|so|anyway|also|and|please|loki)[,:!]?\s+"
+    r"|(?:can|could|would|will) you\s+(?:please\s+)?"
+    r"|(?:remind me|tell me|show me|explain|do you (?:know|remember)|i (?:wonder|forgot|forget))\s+(?:again\s+)?"
+    r")+",
+    re.I,
+)
+
+
+def focus_queries(query: str, limit: int = 3) -> list[str]:
+    """Extra, more focused searches for a message: each substantive sentence on its own, with conversational lead-ins
+    ("remind me", "can you tell me") removed. Empty when the message is already a plain question."""
+    parts = [p.strip() for p in _SENTENCE.split(query.strip()) if p.strip()]
+    out: list[str] = []
+    for p in parts:
+        stripped = _LEADIN.sub("", p).strip() or p
+        if len([w for w in re.findall(r"[\w']+", stripped.lower()) if w not in _FILLER]) < 2:
+            continue
+        if stripped != query.strip() and stripped not in out:
+            out.append(stripped)
+    return out[:limit]
+
+
+def _rank(h) -> float:
+    return h.rerank if h.rerank is not None else h.score
+
+
 class KnowledgeService:
     def __init__(self, embeddings: EmbeddingProvider, reranker: Reranker | None, settings: Settings) -> None:
         self.embeddings = embeddings
@@ -85,11 +118,24 @@ class KnowledgeService:
             project=project,
         )
 
+    async def _search_focused(self, db: AsyncSession, user_id: uuid.UUID, query: str) -> list[Hit]:
+        """Conversational messages bury the question ("Can we pick up X? Remind me what the sync interval is."), and
+        the cross-encoder scores the whole message, so filler pushes good passages under the threshold. Also search
+        each substantive sentence on its own and keep the best score per passage."""
+        queries = [query] + focus_queries(query)
+        best: dict[uuid.UUID, Hit] = {}
+        for q in queries:
+            for h in await self.search(db, user_id, q):
+                cur = best.get(h.chunk.id)
+                if cur is None or _rank(h) > _rank(cur):
+                    best[h.chunk.id] = h
+        return sorted(best.values(), key=_rank, reverse=True)[: self.settings.rag_top_k]
+
     async def retrieve(self, db: AsyncSession, user_id: uuid.UUID, query: str) -> Retrieval:
         if not self.settings.rag_enabled or not await self.has_documents(db, user_id):
             return Retrieval(None, [])
         try:
-            hits = await self.search(db, user_id, query)
+            hits = await self._search_focused(db, user_id, query)
         except (LLMError, RuntimeError) as e:
             log.warning("document retrieval skipped", extra={"error": str(e)})
             return Retrieval(None, [])

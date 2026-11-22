@@ -42,12 +42,12 @@ type ChatState = {
   voiceStatus: VoiceStatus | null;
   voiceSettings: VoiceSettings;
   lastVoiceMetrics: { stt_ms: number | null; first_audio_ms: number | null };
-  view: "assistant" | "memories" | "knowledge" | "planner" | "tools";
+  view: View;
   approvals: ApprovalRequest[];
   notifications: AppNotification[];
   toasts: AppNotification[];
 
-  setView: (v: "assistant" | "memories" | "knowledge" | "planner" | "tools") => void;
+  setView: (v: View) => void;
   respondApproval: (id: string, approved: boolean) => void;
   loadNotifications: () => Promise<void>;
   markAllRead: () => Promise<void>;
@@ -71,6 +71,8 @@ type ChatState = {
 };
 
 const VOICE_KEY = "loki.voice";
+export type View = "assistant" | "memories" | "knowledge" | "planner" | "tools" | "projects" | "settings";
+
 const DEFAULT_VOICE: VoiceSettings = { voice: null, speed: 1, speakTextReplies: false };
 
 function loadVoiceSettings(): VoiceSettings {
@@ -82,6 +84,15 @@ function loadVoiceSettings(): VoiceSettings {
   }
 }
 
+function storeVoice(v: VoiceSettings) {
+  try {
+    localStorage.setItem(VOICE_KEY, JSON.stringify(v));
+  } catch {
+    /* storage unavailable: settings last for this session only */
+  }
+}
+
+let voiceSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let socket: LokiSocket | null = null;
 let errorTimer: ReturnType<typeof setTimeout> | null = null;
 let player: SpeechPlayer | null = null;
@@ -112,7 +123,7 @@ const initial = {
   approvals: [] as ApprovalRequest[],
   notifications: [] as AppNotification[],
   toasts: [] as AppNotification[],
-  view: "assistant" as "assistant" | "memories" | "knowledge" | "planner" | "tools",
+  view: "assistant" as View,
 };
 
 /** Desktop notification (only if the user granted permission; LOKI never asks on its own). */
@@ -174,6 +185,11 @@ export const useChat = create<ChatState>((set, get) => {
         }));
         break;
       }
+      case "project":
+        set((s) => ({
+          conversations: s.conversations.map((c) => (c.id === ev.conversation_id ? { ...c, project: ev.project } : c)),
+        }));
+        break;
       case "message_saved": {
         if (ev.conversation_id !== get().activeId) break;
         set((s) => {
@@ -375,6 +391,16 @@ export const useChat = create<ChatState>((set, get) => {
     connect: (onUnauthorized) => {
       if (socket) return;
       set({ voiceSettings: loadVoiceSettings() });
+      // The account's saved voice settings win over this browser's copy.
+      api
+        .preferences()
+        .then((p) => {
+          const v = { voice: p.voice.voice, speed: p.voice.speed, speakTextReplies: p.voice.speak_text_replies };
+          set({ voiceSettings: v });
+          storeVoice(v);
+          sendVoiceConfig();
+        })
+        .catch(() => undefined);
       player = new SpeechPlayer((playing) => set({ playing }));
       socket = new LokiSocket({
         onEvent: handle,
@@ -537,12 +563,14 @@ export const useChat = create<ChatState>((set, get) => {
     setVoiceSettings: (patch) => {
       const next = { ...get().voiceSettings, ...patch };
       set({ voiceSettings: next });
-      try {
-        localStorage.setItem(VOICE_KEY, JSON.stringify(next));
-      } catch {
-        /* storage unavailable: settings last for this session only */
-      }
+      storeVoice(next);
       sendVoiceConfig();
+      if (voiceSaveTimer) clearTimeout(voiceSaveTimer);
+      voiceSaveTimer = setTimeout(() => {
+        api
+          .updatePreferences({ voice: { voice: next.voice, speed: next.speed, speak_text_replies: next.speakTextReplies } })
+          .catch(() => undefined);
+      }, 600);
     },
 
     clearError: () => set({ error: null }),

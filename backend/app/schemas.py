@@ -52,6 +52,7 @@ class ConversationSummary(ORM):
     is_temporary: bool
     created_at: datetime
     updated_at: datetime
+    project: str | None = None
 
 
 class MessageOut(ORM):

@@ -11,6 +11,7 @@ export type ConversationSummary = {
   is_temporary: boolean;
   created_at: string;
   updated_at: string;
+  project?: string | null;
 };
 
 export type MessageStatus = "complete" | "interrupted" | "error";
@@ -91,9 +92,10 @@ export type ApprovalRequest = {
 
 export type AppNotification = {
   id: string;
-  kind: "reminder" | "agent" | "system";
+  kind: "reminder" | "agent" | "system" | "deadline" | "event" | "briefing" | "folder";
   title: string;
   body: string | null;
+  data?: Record<string, unknown> | null;
   read_at?: string | null;
   created_at: string;
 };
@@ -276,6 +278,7 @@ export type ServerEvent =
   | ({ type: "approval_required" } & ApprovalRequest)
   | { type: "approval_resolved"; approval_id: string; approved: boolean }
   | { type: "notification"; notification: AppNotification }
+  | { type: "project"; conversation_id: string; project: string }
   | { type: "memories_used"; conversation_id: string; memories: MemoryRef[] }
   | { type: "memory_updated"; conversation_id: string; operations: MemoryOp[] }
   | { type: "stt_final"; text: string; language: string | null; latency_ms: number; audio_s: number }
@@ -301,3 +304,60 @@ export type ServerEvent =
   | { type: "assistant_end"; message: Message }
   | { type: "error"; code: string; message: string }
   | { type: "pong" };
+
+// ---------- Phase 6: preferences + projects ----------
+export type WatchedFolder = { path: string; project: string; interval_min: number };
+
+export type Preferences = {
+  style: {
+    response_length: "brief" | "balanced" | "detailed";
+    tone: "casual" | "neutral" | "formal";
+    language: string;
+    markdown: boolean;
+    custom_instructions: string;
+  };
+  voice: { voice: string | null; speed: number; speak_text_replies: boolean };
+  proactive: {
+    deadline_alerts: boolean;
+    deadline_lead_min: number;
+    event_headsup: boolean;
+    event_lead_min: number;
+    daily_briefing: boolean;
+    briefing_time: string;
+    briefing_location: string;
+    conversation_digests: boolean;
+    watched_folders: WatchedFolder[];
+  };
+  quiet_hours: { enabled: boolean; start: string; end: string };
+  background_processing: boolean;
+};
+
+/** Partial update: nested objects are merged by the server. */
+export type PreferencesPatch = { [K in keyof Preferences]?: Preferences[K] extends object ? Partial<Preferences[K]> : Preferences[K] };
+
+export type Learned = {
+  preference_memories: { id: string; content: string }[];
+  top_tools: { tool: string; count: number }[];
+};
+
+export type ProjectStatus = "active" | "paused" | "done";
+
+export type ProjectInfo = {
+  name: string;
+  description: string | null;
+  status: ProjectStatus;
+  overview: string | null;
+  overview_at: string | null;
+  counts: { open_tasks: number; notes: number; memories: number; documents: number; conversations: number };
+  last_activity: string | null;
+};
+
+export type ProjectDetail = ProjectInfo & {
+  tasks: { id: string; title: string; status: string; due_at: string | null }[];
+  notes: { id: string; title: string; updated_at: string }[];
+  memories: { id: string; kind: string; content: string; event_at: string | null }[];
+  documents: { id: string; source: string; status: string }[];
+  conversations: { id: string; title: string; updated_at: string }[];
+};
+
+export type FolderScan = { added: string[]; updated: string[]; removed: string[]; skipped: number };

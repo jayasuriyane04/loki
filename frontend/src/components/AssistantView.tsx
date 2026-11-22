@@ -22,6 +22,8 @@ export function AssistantView() {
     useChat();
   const assistantState = useChat(visualState);
   const approvals = useChat((s) => s.approvals);
+  const project = useChat((s) => s.conversations.find((c) => c.id === s.activeId)?.project ?? null);
+  const setView = useChat((s) => s.setView);
   const scroller = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
 
@@ -71,6 +73,15 @@ export function AssistantView() {
                   {STATE_LABEL[assistantState]}
                   {activeIsTemporary && " · temporary"}
                 </div>
+                {project && (
+                  <button
+                    onClick={() => setView("projects")}
+                    className="mt-1 rounded-full border border-cyan/30 bg-cyan/[0.06] px-2 py-0.5 text-[11px] text-cyan hover:bg-cyan/10"
+                    title="LOKI is using this project's context"
+                  >
+                    Project · {project}
+                  </button>
+                )}
               </div>
               <div className="mx-auto w-full max-w-3xl space-y-6 px-4 pb-6 sm:px-6">
                 {loadingConversation && <p className="text-center text-sm text-faint">Loading…</p>}
