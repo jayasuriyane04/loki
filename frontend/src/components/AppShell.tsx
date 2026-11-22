@@ -7,6 +7,9 @@ import { useChat } from "@/store/chat";
 import { AssistantView } from "./AssistantView";
 import { KnowledgeBase } from "./KnowledgeBase";
 import { MemoryManager } from "./MemoryManager";
+import { Toasts } from "./Notifications";
+import { Planner } from "./Planner";
+import { ToolsPage } from "./ToolsPage";
 import { SidePanel } from "./SidePanel";
 import { TopBar } from "./TopBar";
 
@@ -21,6 +24,7 @@ export function AppShell() {
     chat.refreshConversations();
     chat.refreshModels();
     chat.refreshVoice();
+    chat.loadNotifications();
     const t = setInterval(() => useChat.getState().refreshModels(), 60_000);
     // Speech models load in the background after the server starts; poll until they settle.
     const v = setInterval(() => {
@@ -42,10 +46,21 @@ export function AppShell() {
           <SidePanel />
         </aside>
         <main className="min-w-0 flex-1">
-          {view === "memories" ? <MemoryManager /> : view === "knowledge" ? <KnowledgeBase /> : <AssistantView />}
+          {view === "memories" ? (
+            <MemoryManager />
+          ) : view === "knowledge" ? (
+            <KnowledgeBase />
+          ) : view === "planner" ? (
+            <Planner />
+          ) : view === "tools" ? (
+            <ToolsPage />
+          ) : (
+            <AssistantView />
+          )}
         </main>
       </div>
 
+      <Toasts />
       <AnimatePresence>
         {drawer && (
           <>

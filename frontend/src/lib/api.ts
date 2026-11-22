@@ -1,4 +1,11 @@
 import type {
+  AppNotification,
+  EventItem,
+  NoteItem,
+  ReminderItem,
+  TaskItem,
+  ToolExecution,
+  ToolInfo,
   ChunkInfo,
   ConversationDetail,
   ConversationSummary,
@@ -110,6 +117,27 @@ export const api = {
   },
   knowledgeStatus: () => request<KnowledgeStatus>("/api/knowledge/status"),
   projects: () => request<string[]>("/api/projects"),
+  tasks: (status: "open" | "done" | "all" = "all") => request<TaskItem[]>(`/api/tasks?status=${status}`),
+  createTask: (body: { title: string; due_at?: string | null; priority?: string; project?: string | null }) =>
+    request<TaskItem>("/api/tasks", { method: "POST", body: json(body) }),
+  updateTask: (id: string, body: Partial<Pick<TaskItem, "title" | "status" | "priority" | "due_at" | "project">>) =>
+    request<TaskItem>(`/api/tasks/${id}`, { method: "PATCH", body: json(body) }),
+  deleteTask: (id: string) => request<void>(`/api/tasks/${id}`, { method: "DELETE" }),
+  reminders: (includePast = false) => request<ReminderItem[]>(`/api/reminders?include_past=${includePast}`),
+  createReminder: (body: { text: string; remind_at: string }) =>
+    request<ReminderItem>("/api/reminders", { method: "POST", body: json(body) }),
+  cancelReminder: (id: string) => request<ReminderItem>(`/api/reminders/${id}/cancel`, { method: "POST" }),
+  notes: () => request<NoteItem[]>("/api/notes"),
+  deleteNote: (id: string) => request<void>(`/api/notes/${id}`, { method: "DELETE" }),
+  events: (start?: string) => request<EventItem[]>(`/api/events${start ? `?start=${encodeURIComponent(start)}` : ""}`),
+  deleteEvent: (id: string) => request<void>(`/api/events/${id}`, { method: "DELETE" }),
+  notifications: (unread = false) => request<AppNotification[]>(`/api/notifications?unread=${unread}`),
+  markNotificationsRead: (ids?: string[]) =>
+    request<void>("/api/notifications/read", { method: "POST", body: json({ ids: ids ?? null }) }),
+  tools: () => request<ToolInfo[]>("/api/tools"),
+  setToolSetting: (name: string, setting: ToolInfo["setting"]) =>
+    request<ToolInfo>(`/api/tools/${name}`, { method: "PATCH", body: json({ setting }) }),
+  toolExecutions: (limit = 50) => request<ToolExecution[]>(`/api/tool-executions?limit=${limit}`),
   settings: () => request<{ memory_enabled: boolean }>("/api/settings"),
   updateSettings: (body: { memory_enabled: boolean }) =>
     request<{ memory_enabled: boolean }>("/api/settings", { method: "PATCH", body: json(body) }),

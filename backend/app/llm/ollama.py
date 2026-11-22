@@ -1,14 +1,28 @@
 import json
 import logging
 import time
+import uuid
 from collections.abc import AsyncIterator
 
 import httpx
 
-from app.llm.base import ChatMessage, LLMError, LLMProvider, ProviderHealth, StreamChunk
+from app.llm.base import ChatMessage, LLMError, LLMProvider, ProviderHealth, StreamChunk, ToolCall
 from app.llm.http import open_stream
 
 log = logging.getLogger(__name__)
+
+
+def _as_dict(args: object) -> dict:
+    """Tool arguments arrive as a dict, but some models emit a JSON string."""
+    if isinstance(args, dict):
+        return args
+    if isinstance(args, str):
+        try:
+            parsed = json.loads(args)
+            return parsed if isinstance(parsed, dict) else {"value": parsed}
+        except json.JSONDecodeError:
+            return {"_raw": args}
+    return {}
 
 
 class OllamaProvider(LLMProvider):
@@ -23,10 +37,12 @@ class OllamaProvider(LLMProvider):
         idle_timeout_s: float,
         retries: int,
         think: str = "auto",
+        num_ctx: int | None = None,
     ) -> None:
         super().__init__(model)
         self._retries = retries
         self._think_mode = think
+        self._num_ctx = num_ctx
         self._capabilities: set[str] | None = None
         self._client = httpx.AsyncClient(
             base_url=base_url,
@@ -45,15 +61,32 @@ class OllamaProvider(LLMProvider):
                 return None  # unknown; let the chat call surface any real error
         return True if "thinking" in self._capabilities else None
 
+    def _options(self, temperature: float, max_tokens: int) -> dict:
+        opts: dict = {"temperature": temperature, "num_predict": max_tokens}
+        if self._num_ctx:
+            opts["num_ctx"] = self._num_ctx
+        return opts
+
+    @staticmethod
+    def _message(m: ChatMessage) -> dict:
+        msg: dict = {"role": m.role, "content": m.content}
+        if m.tool_calls:
+            msg["tool_calls"] = [{"function": {"name": c.name, "arguments": c.arguments}} for c in m.tool_calls]
+        if m.role == "tool" and m.tool_name:
+            msg["tool_name"] = m.tool_name
+        return msg
+
     async def stream_chat(
-        self, messages: list[ChatMessage], *, temperature: float, max_tokens: int
+        self, messages: list[ChatMessage], *, temperature: float, max_tokens: int, tools: list[dict] | None = None
     ) -> AsyncIterator[StreamChunk]:
         body: dict = {
             "model": self.model,
-            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            "messages": [self._message(m) for m in messages],
             "stream": True,
-            "options": {"temperature": temperature, "num_predict": max_tokens},
+            "options": self._options(temperature, max_tokens),
         }
+        if tools:
+            body["tools"] = tools
         think = await self._think_param()
         if think is not None:
             body["think"] = think
@@ -69,6 +102,19 @@ class OllamaProvider(LLMProvider):
                         raise LLMError(f"Ollama error: {data['error']}", provider=self.name)
                     message = data.get("message") or {}
                     delta = message.get("content", "")
+                    if message.get("tool_calls"):
+                        calls = [
+                            ToolCall(
+                                id=c.get("id") or f"call_{uuid.uuid4().hex[:10]}",
+                                name=(c.get("function") or {}).get("name", ""),
+                                arguments=_as_dict((c.get("function") or {}).get("arguments")),
+                            )
+                            for c in message["tool_calls"]
+                        ]
+                        yield StreamChunk(delta=delta, tool_calls=calls)
+                        delta = ""
+                        if not data.get("done"):
+                            continue
                     if message.get("thinking") and not delta:
                         yield StreamChunk(reasoning=True)
                         continue
@@ -93,9 +139,9 @@ class OllamaProvider(LLMProvider):
     ) -> str:
         body: dict = {
             "model": self.model,
-            "messages": [{"role": m.role, "content": m.content} for m in messages],
+            "messages": [self._message(m) for m in messages],
             "stream": False,
-            "options": {"temperature": temperature, "num_predict": max_tokens},
+            "options": self._options(temperature, max_tokens),
         }
         if json_schema is not None:
             body["format"] = json_schema
@@ -114,7 +160,11 @@ class OllamaProvider(LLMProvider):
         """Ask Ollama to load the model into memory now, so the first real question doesn't pay for it."""
         start = time.perf_counter()
         try:
-            resp = await self._client.post("/api/generate", json={"model": self.model}, timeout=180)
+            # Same num_ctx as real requests, or Ollama reloads the model on the first question.
+            body: dict = {"model": self.model}
+            if self._num_ctx:
+                body["options"] = {"num_ctx": self._num_ctx}
+            resp = await self._client.post("/api/generate", json=body, timeout=180)
             resp.raise_for_status()
             log.info("llm warm", extra={"model": self.model, "s": round(time.perf_counter() - start, 1)})
         except httpx.HTTPError as e:

@@ -24,7 +24,7 @@ def build_provider(name: ProviderName, model: str, s: Settings) -> LLMProvider:
         "retries": s.llm_connect_retries,
     }
     if name == "ollama":
-        return OllamaProvider(model, base_url=s.ollama_base_url, think=s.ollama_think, **common)
+        return OllamaProvider(model, base_url=s.ollama_base_url, think=s.ollama_think, num_ctx=s.ollama_num_ctx, **common)
     if name == "gemini":
         return GeminiProvider(model, api_key=s.gemini_api_key, base_url=s.gemini_base_url, **common)
     raise ValueError(f"Unknown provider: {name}")
@@ -47,11 +47,13 @@ class LLMRouter:
             fallback = build_provider(s.llm_fallback_provider, s.llm_fallback_model, s)
         return cls(primary, fallback, temperature=s.llm_temperature, max_tokens=s.llm_max_output_tokens)
 
-    async def stream(self, messages: list[ChatMessage]) -> AsyncIterator[StreamStarted | StreamChunk]:
+    async def stream(
+        self, messages: list[ChatMessage], tools: list[dict] | None = None
+    ) -> AsyncIterator[StreamStarted | StreamChunk]:
         candidates = [self.primary] + ([self.fallback] if self.fallback else [])
         last_error: LLMError | None = None
         for i, provider in enumerate(candidates):
-            gen = provider.stream_chat(messages, temperature=self.temperature, max_tokens=self.max_tokens)
+            gen = provider.stream_chat(messages, temperature=self.temperature, max_tokens=self.max_tokens, tools=tools)
             try:
                 first = await anext(gen)
             except LLMError as e:

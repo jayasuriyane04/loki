@@ -24,3 +24,8 @@ onnxruntime>=1.20
 # CUDA runtime for faster-whisper on NVIDIA GPUs (skip on CPU-only machines and set STT_DEVICE=cpu)
 nvidia-cublas-cu12>=12.4
 nvidia-cudnn-cu12>=9.1
+
+# Agent / tools (Phase 5)
+langgraph>=1.2,<2
+psutil>=6
+tzdata                       # IANA timezones (Windows has no system database)

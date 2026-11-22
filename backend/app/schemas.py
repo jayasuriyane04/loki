@@ -67,6 +67,7 @@ class MessageOut(ORM):
     latency_ms: int | None
     first_token_ms: int | None
     citations: list[dict] | None = None
+    tool_steps: list[dict] | None = None
     created_at: datetime
 
 

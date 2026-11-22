@@ -81,6 +81,16 @@ class Settings(BaseSettings):
     rerank_model_dir: str = "models/reranker/mxbai-rerank-xsmall-v1"
     rerank_threshold: float = 0.25  # reranker probability below which a passage is not shown to the model
 
+    # Agent / tools (Phase 5)
+    tools_enabled: bool = True
+    agent_max_steps: int = 12  # model calls per turn (each may call several tools); research needs ~8-10
+    approval_timeout_s: float = 300.0  # unanswered approval requests count as "denied"
+    searxng_url: str = "http://127.0.0.1:8888"
+    reminder_poll_s: float = 15.0
+    # Ollama's default context is 4096 tokens: too small once memories, documents and tool definitions are in the
+    # prompt (it silently truncates). 12k fits the RTX 5060 alongside Whisper and the embedding model.
+    ollama_num_ctx: int = 12288
+
     # Context window budget for conversation history (characters, rough proxy for tokens)
     context_char_budget: int = 12000
     max_message_chars: int = 8000

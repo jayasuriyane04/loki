@@ -121,6 +121,38 @@ WebSocket events
 Documents of other users are always `404`. `assistant_end.message.citations` (also stored on the message):
 `[{n, document_id, chunk_id, title, source, project, heading, page, line_start, line_end, score, snippet, cited}]`.
 
+## Agent, tools and productivity — Phase 5 ✅
+| Method | Path | Notes |
+|---|---|---|
+| GET/POST | `/api/tasks?status=open\|done\|all` | `{title, due_at (ISO with offset), priority, project, notes}` |
+| PATCH/DELETE | `/api/tasks/{id}` | PATCH any field incl. `status` (sets/clears `completed_at`) |
+| GET/POST | `/api/reminders?include_past=` | `{text, remind_at}`; past times are refused (`422`) |
+| POST | `/api/reminders/{id}/cancel` · DELETE `/api/reminders/{id}` | |
+| GET/POST | `/api/notes` · PATCH/DELETE `/api/notes/{id}` | notes are embedded for `search_notes` |
+| GET/POST | `/api/events?start=&end=` · DELETE `/api/events/{id}` | |
+| GET | `/api/notifications?unread=` | POST `/api/notifications/read` `{ids?}` (omit = all) |
+| GET | `/api/tools` | every tool: `{name, description, category, permission, always_confirm, setting, parameters}` |
+| PATCH | `/api/tools/{name}` | `{setting: auto\|confirm\|off}`; `422` when setting a confirm-required tool to `auto` |
+| GET | `/api/tool-executions?limit=&tool=` | audit log `{tool, arguments, permission, status, approved, summary, error, duration_ms}` |
+
+Naive datetimes are rejected (`422`); everything is stored in UTC. `assistant_end.message.tool_steps` holds the
+steps of that reply: `[{id, tool, args, status, summary, approved, duration_ms, data}]`.
+
+WebSocket additions
+```jsonc
+// client → server
+{"type": "client_info", "timezone": "Asia/Kolkata"}                 // sent on connect
+{"type": "approval", "approval_id": "call_…", "approved": true}     // answer to approval_required
+// server → client
+{"type": "state", "state": "executing"}
+{"type": "tool_call", "id": "call_…", "tool": "create_task", "args": {…}}
+{"type": "tool_result", "id": "call_…", "tool": "…", "status": "ok|error|denied|timeout|invalid|disabled",
+ "summary": "Added task “…”", "approved": null, "duration_ms": 12, "data": {…}}
+{"type": "approval_required", "approval_id": "call_…", "tool": "delete_task", "args": {…},
+ "call": "Permanently delete task “buy groceries” (due Mon 23 Nov 09:00)", "description": "…", "always_confirm": true}
+{"type": "approval_resolved", "approval_id": "call_…", "approved": false}   // also after 5 min timeout (= denied)
+{"type": "notification", "notification": {"id", "kind": "reminder|agent|system", "title", "body", "created_at"}}
+```
+
 ## Planned
-- Phase 5: `/api/tools`, `/api/tool-executions`, `/api/tasks`, `/api/reminders`, WS `tool_call`, `tool_result`, `confirmation_required` / `confirm`.
 - Phase 7: `/api/metrics`.

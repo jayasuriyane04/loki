@@ -8,12 +8,23 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import routes_auth, routes_conversations, routes_knowledge, routes_memory, routes_system, ws
+from app.api import (
+    routes_auth,
+    routes_conversations,
+    routes_knowledge,
+    routes_memory,
+    routes_productivity,
+    routes_system,
+    ws,
+)
 from app.core.config import get_settings
 from app.core.logging import configure_logging, request_id_var
 from app.db import migrate
 from app.db.session import engine
+from app.agent.notify import Notifier, ReminderScheduler
 from app.knowledge.ingest import Ingestor
+from app.tools.builtin.system import LOG_BUFFER
+from app.tools.registry import load_builtin_tools
 from app.knowledge.rerank import OnnxCrossEncoder
 from app.knowledge.service import KnowledgeService
 from app.llm.embeddings import build_embeddings
@@ -23,6 +34,8 @@ from app.voice.manager import VoiceManager
 
 settings = get_settings()
 configure_logging(settings.log_level)
+logging.getLogger().addHandler(LOG_BUFFER)  # lets the read_app_logs tool inspect recent logs
+load_builtin_tools()
 log = logging.getLogger("loki")
 
 
@@ -42,6 +55,9 @@ async def lifespan(app: FastAPI):
     app.state.ingestor = Ingestor(app.state.embeddings, settings)
     await app.state.ingestor.start()  # re-queues documents left unfinished by a previous run
     rerank_load = asyncio.create_task(reranker.load() if reranker else asyncio.sleep(0))
+    app.state.notifier = Notifier()
+    app.state.scheduler = ReminderScheduler(app.state.notifier, settings.reminder_poll_s)
+    app.state.scheduler.start()  # also delivers reminders that fell due while LOKI was off
     app.state.voice = VoiceManager.from_settings(settings)
     app.state.voice.start()  # loads STT/TTS in the background; the API is usable immediately
     log.info(
@@ -57,6 +73,7 @@ async def lifespan(app: FastAPI):
     yield
     warm.cancel()
     rerank_load.cancel()
+    await app.state.scheduler.stop()
     await app.state.ingestor.stop()
     for t in list(app.state.background):
         t.cancel()
@@ -102,5 +119,6 @@ app.include_router(routes_auth.router)
 app.include_router(routes_conversations.router)
 app.include_router(routes_memory.router)
 app.include_router(routes_knowledge.router)
+app.include_router(routes_productivity.router)
 app.include_router(routes_system.router)
 app.include_router(ws.router)

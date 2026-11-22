@@ -126,7 +126,9 @@ changing the providers.
 | Docker Desktop (installed for Phase 3) | Postgres 16 + pgvector run in Docker (`docker compose up -d postgres`). SQLite still works for quick dev/tests (vector search runs in Python there). | Use `127.0.0.1`, not `localhost`, in `DATABASE_URL` (IPv6 fallback made connections about 5× slower). Redis is defined but not used yet. |
 | Ollama defaults to the AMD iGPU (it reports more memory) | 3.6× slower generation | Solved: `scripts/start-ollama.ps1` runs LOKI's Ollama on port 11435 with the AMD GPU hidden. |
 | Local model is `qwen3:4b-instruct` (4B) | Fast (about 0.2 s to first token) and tool-capable, but weaker at long multi-step reasoning. | RTX 5060 (8 GB) can run 7–8B models (`qwen3:8b`, 5.2 GB) next to Whisper; configure Gemini as a fallback for heavy agentic work. |
-| Celery has no official Windows support | Worker must run in Docker or WSL. | Use Celery in Docker, or `arq` (Redis, async) which runs fine on Windows. Decide in Phase 4. |
+| Celery has no official Windows support | Background work (document ingestion, the reminder scheduler) runs as in-process async tasks; both survive restarts via database state. | A separate worker (arq on Redis) if scheduled jobs grow in Phase 6. |
+| Windows has no IANA timezone database | `zoneinfo` fails without it. | `tzdata` package (Phase 5). |
+| Ollama's default 4,096-token context | Long prompts (memory + documents + tools) were silently truncated. | `OLLAMA_NUM_CTX=12288` on every request and on warm-up. |
 | No cloud API keys set | Only Ollama works today. | Add `GEMINI_API_KEY` (LLM), `DEEPGRAM_API_KEY`, `ELEVENLABS_API_KEY` (voice) when ready; all optional. |
 | Proactive notifications | Browser must be open, or use Web Push. | Web Push (VAPID) in Phase 6. |
 

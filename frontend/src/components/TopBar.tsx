@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useAuth } from "@/store/auth";
 import { useChat, visualState } from "@/store/chat";
 import { STATE_LABEL } from "./Visualizer";
+import { NotificationBell } from "./Notifications";
 import { VoicePanel } from "./VoicePanel";
 
 function Dot({ tone }: { tone: "ok" | "warn" | "bad" | "off" }) {
@@ -78,6 +79,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
           </button>
           {panel && <VoicePanel onClose={closePanel} />}
         </div>
+        <NotificationBell />
         <button
           disabled
           className="rounded-md p-1.5 text-faint opacity-50"

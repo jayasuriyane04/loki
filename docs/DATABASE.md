@@ -100,12 +100,18 @@ transaction.
 ### messages (added column)
 `citations json null`: the passages shown to the model for that reply, each with `cited` true/false.
 
-## Phase 5 — Tools and tasks ⏳
-- **tool_executions**: `id, user_id, conversation_id, tool_name, arguments jsonb, status,
-  result jsonb, error, permission_level, approved_by_user, duration_ms, created_at`.
-- **tasks**: `id, user_id, project_id null, title, notes, status, due_at, completed_at`.
-- **reminders**: `id, user_id, text, remind_at, delivered_at, channel`.
-- **notes**: `id, user_id, project_id null, title, body, embedding vector(N)`.
+## Phase 5 — Agent, tools, productivity ✅ (migration `0004`)
+All user-owned (`user_id` cascade, indexed); every row records `created_by` = `user` or `loki`.
+- **tasks**: `title, notes, project, priority (low|normal|high), status (open|done), due_at, completed_at, created_at, updated_at`.
+- **reminders**: `text, remind_at (indexed), status (scheduled|delivered|cancelled), delivered_at, created_at`.
+- **notes**: `title, body (Markdown), project, embedding vector(1024), created_at, updated_at`.
+- **events**: `title, starts_at (indexed), ends_at, location, notes, created_at` (LOKI's own calendar).
+- **notifications**: `kind (reminder|agent|system), title, body, read_at, created_at (indexed)`.
+- **tool_executions** (audit log): `conversation_id (SET NULL), tool, arguments json, permission (read|reversible|confirm),
+  status (ok|error|denied|timeout|invalid|disabled), approved (null = no approval needed), summary, result
+  (truncated, success only), error, duration_ms, created_at`.
+- **user_settings** + `timezone` (IANA, from the browser), `tool_prefs json` (`{tool: "confirm"|"off"}`).
+- **messages** + `tool_steps json`: the tool calls behind a reply (replayed into later context).
 
 ## Phase 6 — Personalisation and proactive ⏳
 - **projects**: `id, user_id, name, summary, status`.
@@ -113,7 +119,7 @@ transaction.
 - **notifications**: `id, user_id, title, body, read_at, created_at`.
 
 ## Migrations
-Alembic, in `backend/migrations/` (`0001` = Phase 1 baseline, `0002` = memory, `0003` = knowledge base). They run automatically
+Alembic, in `backend/migrations/` (`0001` = Phase 1 baseline, `0002` = memory, `0003` = knowledge base, `0004` = agent and tools). They run automatically
 at start-up (`AUTO_MIGRATE=true`) or manually:
 ```powershell
 cd backend; .\.venv\Scripts\python.exe -m alembic upgrade head

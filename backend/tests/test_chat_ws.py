@@ -122,7 +122,7 @@ def test_bad_messages_rejected(client: TestClient, user: dict):
 def test_empty_reply_reported(client: TestClient, user: dict):
 
     class ReasonOnly(FakeProvider):
-        async def stream_chat(self, messages, *, temperature, max_tokens):
+        async def stream_chat(self, messages, *, temperature, max_tokens, tools=None):
             from app.llm.base import StreamChunk
 
             yield StreamChunk(reasoning=True)

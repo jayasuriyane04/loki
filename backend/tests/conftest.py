@@ -48,7 +48,7 @@ from app.knowledge.rerank import Reranker  # noqa: E402
 from app.knowledge.service import KnowledgeService  # noqa: E402
 from app.llm.embeddings import EmbeddingProvider  # noqa: E402
 from app.memory.service import MemoryService  # noqa: E402
-from app.llm.base import ChatMessage, LLMError, LLMProvider, ProviderHealth, StreamChunk  # noqa: E402
+from app.llm.base import ChatMessage, LLMError, LLMProvider, ProviderHealth, StreamChunk, ToolCall  # noqa: E402
 from app.llm.router import LLMRouter  # noqa: E402
 from app.main import app  # noqa: E402
 
@@ -66,16 +66,29 @@ class FakeProvider(LLMProvider):
         self.calls: list[list[ChatMessage]] = []
         self.completions: list[tuple[list[ChatMessage], dict | None]] = []
         self.extraction_ops: list[list[dict]] = []  # one list of operations per extraction call
+        # Agent tests: one entry per model step. A list of (name, args) = call those tools; a str = reply text.
+        self.script: list[list[tuple[str, dict]] | str] = []
+        self.tools_offered: list[list[str] | None] = []
 
-    async def stream_chat(self, messages, *, temperature, max_tokens) -> AsyncIterator[StreamChunk]:
+    async def stream_chat(self, messages, *, temperature, max_tokens, tools=None) -> AsyncIterator[StreamChunk]:
         self.calls.append(messages)
+        self.tools_offered.append([t["function"]["name"] for t in tools] if tools else None)
         if self.fail:
             raise LLMError("fake provider down", provider=self.name)
-        for word in self.reply.split(" "):
+        if self.script:
+            step = self.script.pop(0)
+            if isinstance(step, list):
+                yield StreamChunk(tool_calls=[ToolCall(f"call_{i}_{len(self.calls)}", n, a) for i, (n, a) in enumerate(step)])
+                yield StreamChunk(done=True, prompt_tokens=5, completion_tokens=5)
+                return
+            reply = step
+        else:
+            reply = self.reply
+        for word in reply.split(" "):
             if self.delay:
                 await asyncio.sleep(self.delay)
             yield StreamChunk(delta=word + " ")
-        yield StreamChunk(done=True, prompt_tokens=11, completion_tokens=len(self.reply.split(" ")))
+        yield StreamChunk(done=True, prompt_tokens=11, completion_tokens=len(reply.split(" ")))
 
     async def complete(self, messages, *, temperature, max_tokens, json_schema=None) -> str:
         self.completions.append((messages, json_schema))

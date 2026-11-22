@@ -10,7 +10,10 @@ from pydantic import ValidationError
 
 from app.api.deps import resolve_session
 from app.core.config import get_settings
-from app.db.models import Conversation, User
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from app.agent.graph import Approvals
+from app.db.models import Conversation, User, UserSettings
 from app.db.session import SessionLocal
 from app.memory.service import MemoryService
 from app.schemas import WSAudioUtterance, WSControl, WSUserMessage, WSVoiceConfig
@@ -41,7 +44,10 @@ async def websocket_endpoint(ws: WebSocket) -> None:
 
     await ws.accept()
     memory: MemoryService | None = ws.app.state.memory
-    service = ChatService(ws.app.state.llm, settings, memory, ws.app.state.knowledge)
+    notifier = ws.app.state.notifier
+    service = ChatService(ws.app.state.llm, settings, memory, ws.app.state.knowledge,
+                          services={"embeddings": ws.app.state.embeddings, "notifier": notifier})
+    approvals = Approvals()
     background: set[asyncio.Task[None]] = ws.app.state.background
     voice: VoiceManager = ws.app.state.voice
     voice_cfg = WSVoiceConfig(type="voice_config", voice=settings.tts_voice, speed=settings.tts_speed)
@@ -102,7 +108,9 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 if user is None or not user.is_active:
                     await send({"type": "error", "code": "unauthorized", "message": "Session no longer valid."})
                     return
-                result = await service.run_turn(db, user, msg, send, on_delta=speaker.feed if speaker else None)
+                result = await service.run_turn(
+                    db, user, msg, send, on_delta=speaker.feed if speaker else None, approvals=approvals
+                )
             if result is not None and memory is not None:
                 # Runs after the reply, outside this turn: a barge-in must not cancel saving what was said.
                 task = asyncio.create_task(_after_turn(memory, user_id, result, send))
@@ -130,6 +138,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     def busy() -> bool:
         return current is not None and not current.done()
 
+    notifier.connect(user_id, send)
     try:
         while True:
             frame = await ws.receive()
@@ -163,6 +172,12 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                     current = asyncio.create_task(run(msg))
                 elif kind == "audio_utterance":
                     pending_audio = WSAudioUtterance.model_validate(data)
+                elif kind == "approval":
+                    ok = approvals.resolve(str(data.get("approval_id")), data.get("approved") is True)
+                    if not ok:
+                        await send({"type": "error", "code": "bad_request", "message": "That approval request has expired."})
+                elif kind == "client_info":
+                    await _save_timezone(user_id, str(data.get("timezone") or ""))
                 elif kind == "voice_config":
                     voice_cfg = WSVoiceConfig.model_validate(data)
                     if voice_cfg.voice and voice.tts_ready and voice.tts and voice_cfg.voice not in voice.tts.voices():
@@ -180,7 +195,24 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     except WebSocketDisconnect:
         pass
     finally:
+        notifier.disconnect(user_id, send)
+        approvals.cancel_all()
         await stop_current()
+
+
+async def _save_timezone(user_id: Any, tz: str) -> None:
+    """The browser reports its IANA timezone so 'tomorrow at 10' means the user's 10:00."""
+    try:
+        ZoneInfo(tz)
+    except (ZoneInfoNotFoundError, ValueError):
+        return
+    async with SessionLocal() as db:
+        s = await db.get(UserSettings, user_id)
+        if s is None:
+            db.add(UserSettings(user_id=user_id, memory_enabled=True, timezone=tz))
+        elif s.timezone != tz:
+            s.timezone = tz
+        await db.commit()
 
 
 async def _after_turn(memory: MemoryService, user_id: Any, result: TurnResult, send: Any) -> None:

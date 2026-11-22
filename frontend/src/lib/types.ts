@@ -28,6 +28,7 @@ export type Message = {
   latency_ms: number | null;
   first_token_ms: number | null;
   citations?: Citation[] | null;
+  tool_steps?: ToolStep[] | null;
   created_at: string;
 };
 
@@ -66,6 +67,93 @@ export type Citation = {
   score: number;
   snippet: string;
   cited: boolean;
+};
+
+export type ToolStep = {
+  id: string;
+  tool: string;
+  args: Record<string, unknown>;
+  status: "running" | "ok" | "error" | "denied" | "timeout" | "invalid" | "disabled";
+  summary: string;
+  approved: boolean | null;
+  duration_ms: number;
+  data?: Record<string, unknown> | null;
+};
+
+export type ApprovalRequest = {
+  approval_id: string;
+  tool: string;
+  args: Record<string, unknown>;
+  description: string;
+  call: string;
+  always_confirm: boolean;
+};
+
+export type AppNotification = {
+  id: string;
+  kind: "reminder" | "agent" | "system";
+  title: string;
+  body: string | null;
+  read_at?: string | null;
+  created_at: string;
+};
+
+export type TaskItem = {
+  id: string;
+  title: string;
+  notes: string | null;
+  project: string | null;
+  priority: "low" | "normal" | "high";
+  status: "open" | "done";
+  due_at: string | null;
+  completed_at: string | null;
+  created_by: "user" | "loki";
+  created_at: string;
+};
+
+export type ReminderItem = {
+  id: string;
+  text: string;
+  remind_at: string;
+  status: "scheduled" | "delivered" | "cancelled";
+  delivered_at: string | null;
+  created_by: string;
+};
+
+export type NoteItem = { id: string; title: string; body: string; project: string | null; created_by: string; updated_at: string };
+
+export type EventItem = {
+  id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string | null;
+  location: string | null;
+  notes: string | null;
+  created_by: string;
+};
+
+export type ToolInfo = {
+  name: string;
+  description: string;
+  category: string;
+  permission: "read" | "reversible" | "confirm";
+  always_confirm: boolean;
+  setting: "auto" | "confirm" | "off";
+  parameters: Record<string, unknown>;
+};
+
+export type ToolExecution = {
+  id: string;
+  conversation_id: string | null;
+  tool: string;
+  arguments: Record<string, unknown>;
+  permission: string;
+  status: string;
+  approved: boolean | null;
+  summary: string | null;
+  error: string | null;
+  duration_ms: number;
+  created_at: string;
 };
 
 export type DocStatus = "pending" | "processing" | "ready" | "failed";
@@ -182,7 +270,12 @@ export type AssistantState =
 export type ServerEvent =
   | { type: "conversation"; conversation: ConversationSummary }
   | { type: "message_saved"; conversation_id: string; message: Message }
-  | { type: "state"; state: "transcribing" | "retrieving" | "processing" | "thinking" | "idle" }
+  | { type: "state"; state: "transcribing" | "retrieving" | "processing" | "thinking" | "executing" | "idle" }
+  | { type: "tool_call"; id: string; tool: string; args: Record<string, unknown> }
+  | ({ type: "tool_result" } & ToolStep)
+  | ({ type: "approval_required" } & ApprovalRequest)
+  | { type: "approval_resolved"; approval_id: string; approved: boolean }
+  | { type: "notification"; notification: AppNotification }
   | { type: "memories_used"; conversation_id: string; memories: MemoryRef[] }
   | { type: "memory_updated"; conversation_id: string; operations: MemoryOp[] }
   | { type: "stt_final"; text: string; language: string | null; latency_ms: number; audio_s: number }

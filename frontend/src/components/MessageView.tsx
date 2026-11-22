@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { BookOpen, Brain, Mic, Sparkles } from "lucide-react";
 import { memo, useState } from "react";
 import { useChat } from "@/store/chat";
+import { ToolSteps } from "./ToolSteps";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Citation, UiMessage } from "@/lib/types";
@@ -170,6 +171,7 @@ export const MessageView = memo(function MessageView({ m }: { m: UiMessage }) {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
       <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-cyan/80 shadow-[0_0_12px_rgba(94,231,255,0.6)]" />
       <div className="min-w-0 flex-1">
+        {m.tool_steps && m.tool_steps.length > 0 && <ToolSteps steps={m.tool_steps} />}
         <div className={`prose-loki text-ink/95 ${m.streaming ? "caret" : ""}`}>
           {m.content ? (
             <ReactMarkdown

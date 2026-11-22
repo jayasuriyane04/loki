@@ -2,11 +2,12 @@
 
 A voice-first, memory-backed, tool-using personal AI assistant, built in phases.
 
-**Current status: Phases 1–4 done.** LOKI is a text **and voice** assistant with long-term memory and a personal
-knowledge base: it learns useful facts about you as you talk, and answers from your own documents (notes, PDFs,
-project folders) with citations you can click. Everything runs locally: Whisper on the GPU, Kokoro speech, Ollama for
-the chat and embedding models, an ONNX reranker, PostgreSQL + pgvector in Docker. Tools and agents (Phase 5) are
-**not built yet**. See [docs/ROADMAP.md](docs/ROADMAP.md).
+**Current status: Phases 1–5 done.** LOKI is a text **and voice** assistant with long-term memory, a personal
+knowledge base with cited answers, and an agent that uses tools. It can search the web and read pages, check the
+weather, manage tasks, reminders, notes and a calendar, search your files and code, and run approved dev commands and
+apps. Anything destructive asks you first. Everything runs locally: Whisper on the GPU, Kokoro speech, Ollama for the
+chat and embedding models, an ONNX reranker, PostgreSQL + pgvector and SearXNG in Docker. Personalisation and
+proactive features (Phase 6) are next. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 | Doc | Contents |
 |---|---|
@@ -25,9 +26,9 @@ the chat and embedding models, an ONNX reranker, PostgreSQL + pgvector in Docker
 
 Prerequisites: Python 3.12+, Node 20+, [Ollama](https://ollama.com), Docker Desktop.
 
-Database, once (it restarts with Docker Desktop afterwards):
+Database and web search, once (they restart with Docker Desktop afterwards):
 ```powershell
-docker compose up -d postgres
+docker compose up -d postgres searxng
 ```
 
 LOKI's model server, in its own terminal (pins Ollama to the NVIDIA GPU on port 11435; keep it open):
@@ -81,6 +82,13 @@ off. Temporary chats never read or write memory. Passwords and other secrets are
 **Documents:** open **Knowledge base** in the side panel and add files or a whole project folder (optionally tagged
 with a project). When an answer uses them, it cites passages as numbered chips. Click one to see the exact text,
 page or lines. The search box there shows exactly which passages LOKI would use for a question.
+
+**Getting things done:** just ask ("remind me tomorrow at 10 to submit the application", "add renew passport for
+Friday", "do I need an umbrella in Chennai?", "research X, save a summary as a note and notify me"). Each tool LOKI
+uses appears as a step above its answer. Deleting things, running commands and opening websites show an
+**approval card** first. **Planner** (side panel) lists tasks, reminders, events and notes. **Tools** lets you set each
+tool to automatic, "ask me first" or off, and shows the activity log. Allowed commands, apps and workflows are in
+`backend/config/automation.json`.
 
 **Talking to LOKI:** click the mic button next to Send. The top bar shows a red **Mic live** badge while the
 microphone is on. Just speak; LOKI answers out loud, and you can interrupt it by talking (or say "stop").

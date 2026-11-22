@@ -6,6 +6,8 @@ import { describeMicError, MicInput } from "@/lib/mic";
 import { LokiSocket, type SocketStatus } from "@/lib/socket";
 import { useMemory } from "@/store/memory";
 import type {
+  AppNotification,
+  ApprovalRequest,
   AssistantState,
   ConversationSummary,
   MemoryRef,
@@ -40,9 +42,16 @@ type ChatState = {
   voiceStatus: VoiceStatus | null;
   voiceSettings: VoiceSettings;
   lastVoiceMetrics: { stt_ms: number | null; first_audio_ms: number | null };
-  view: "assistant" | "memories" | "knowledge";
+  view: "assistant" | "memories" | "knowledge" | "planner" | "tools";
+  approvals: ApprovalRequest[];
+  notifications: AppNotification[];
+  toasts: AppNotification[];
 
-  setView: (v: "assistant" | "memories" | "knowledge") => void;
+  setView: (v: "assistant" | "memories" | "knowledge" | "planner" | "tools") => void;
+  respondApproval: (id: string, approved: boolean) => void;
+  loadNotifications: () => Promise<void>;
+  markAllRead: () => Promise<void>;
+  dismissToast: (id: string) => void;
   connect: (onUnauthorized: () => void) => void;
   disconnect: () => void;
   refreshConversations: () => Promise<void>;
@@ -100,8 +109,22 @@ const initial = {
   playing: false,
   voiceStatus: null,
   lastVoiceMetrics: { stt_ms: null, first_audio_ms: null },
-  view: "assistant" as "assistant" | "memories" | "knowledge",
+  approvals: [] as ApprovalRequest[],
+  notifications: [] as AppNotification[],
+  toasts: [] as AppNotification[],
+  view: "assistant" as "assistant" | "memories" | "knowledge" | "planner" | "tools",
 };
+
+/** Desktop notification (only if the user granted permission; LOKI never asks on its own). */
+function showDesktopNotification(n: AppNotification) {
+  try {
+    if (typeof Notification !== "undefined" && Notification.permission === "granted" && document.hidden) {
+      new Notification(n.title, { body: n.body ?? undefined, tag: n.id });
+    }
+  } catch {
+    /* unsupported */
+  }
+}
 
 /** What the visualiser and status labels show, derived from all the moving parts. */
 export function visualState(s: ChatState): AssistantState {
@@ -174,6 +197,48 @@ export const useChat = create<ChatState>((set, get) => {
           set({ busy: true, assistantState: ev.state });
         }
         break;
+      case "tool_call":
+        set((s) => {
+          const idx = s.messages.findLastIndex((m) => m.role === "assistant" && m.streaming);
+          if (idx < 0) return {};
+          const msgs = [...s.messages];
+          const step = { id: ev.id, tool: ev.tool, args: ev.args, status: "running" as const, summary: "", approved: null, duration_ms: 0 };
+          msgs[idx] = { ...msgs[idx], tool_steps: [...(msgs[idx].tool_steps ?? []), step] };
+          return { messages: msgs };
+        });
+        break;
+      case "tool_result": {
+        const { type: _t, ...step } = ev;
+        void _t;
+        set((s) => {
+          const idx = s.messages.findLastIndex((m) => m.role === "assistant" && m.streaming);
+          if (idx < 0) return {};
+          const msgs = [...s.messages];
+          const steps = msgs[idx].tool_steps ?? [];
+          msgs[idx] = {
+            ...msgs[idx],
+            tool_steps: steps.some((x) => x.id === step.id) ? steps.map((x) => (x.id === step.id ? step : x)) : [...steps, step],
+          };
+          return { messages: msgs };
+        });
+        break;
+      }
+      case "approval_required": {
+        const { type: _t, ...req } = ev;
+        void _t;
+        set((s) => ({ approvals: [...s.approvals.filter((a) => a.approval_id !== req.approval_id), req] }));
+        break;
+      }
+      case "approval_resolved":
+        set((s) => ({ approvals: s.approvals.filter((a) => a.approval_id !== ev.approval_id) }));
+        break;
+      case "notification": {
+        const n = ev.notification;
+        set((s) => ({ notifications: [n, ...s.notifications], toasts: [...s.toasts, n] }));
+        showDesktopNotification(n);
+        setTimeout(() => get().dismissToast(n.id), 12_000);
+        break;
+      }
       case "memories_used":
         if (ev.conversation_id === get().activeId) pendingRecall = ev.memories;
         break;
@@ -286,6 +351,27 @@ export const useChat = create<ChatState>((set, get) => {
 
     setView: (view) => set({ view }),
 
+    respondApproval: (id, approved) => {
+      socket?.send({ type: "approval", approval_id: id, approved });
+      set((s) => ({ approvals: s.approvals.filter((a) => a.approval_id !== id) }));
+    },
+
+    loadNotifications: async () => {
+      try {
+        set({ notifications: await api.notifications() });
+      } catch {
+        /* non-fatal */
+      }
+    },
+
+    markAllRead: async () => {
+      await api.markNotificationsRead().catch(() => undefined);
+      const now = new Date().toISOString();
+      set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, read_at: n.read_at ?? now })) }));
+    },
+
+    dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+
     connect: (onUnauthorized) => {
       if (socket) return;
       set({ voiceSettings: loadVoiceSettings() });
@@ -299,7 +385,10 @@ export const useChat = create<ChatState>((set, get) => {
             // A dropped socket ends any in-flight turn on the client side.
             ...(socketStatus === "closed" && s.busy ? { busy: false, assistantState: "idle" } : {}),
           }));
-          if (socketStatus === "open") sendVoiceConfig();
+          if (socketStatus === "open") {
+            sendVoiceConfig();
+            socket?.send({ type: "client_info", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+          }
         },
         onUnauthorized,
       });

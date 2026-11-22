@@ -7,6 +7,7 @@ import { useAuth } from "@/store/auth";
 import { useChat, visualState } from "@/store/chat";
 import { Composer } from "./Composer";
 import { MessageView } from "./MessageView";
+import { ApprovalCard } from "./ToolSteps";
 import { STATE_LABEL, Visualizer } from "./Visualizer";
 
 function greeting(name: string) {
@@ -20,6 +21,7 @@ export function AssistantView() {
   const { messages, loadingConversation, error, clearError, activeIsTemporary, activeId, temporaryMode, mic } =
     useChat();
   const assistantState = useChat(visualState);
+  const approvals = useChat((s) => s.approvals);
   const scroller = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
 
@@ -80,6 +82,12 @@ export function AssistantView() {
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {approvals.map((a) => (
+          <ApprovalCard key={a.approval_id} req={a} />
+        ))}
+      </AnimatePresence>
 
       <AnimatePresence>
         {error && (

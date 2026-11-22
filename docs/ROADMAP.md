@@ -8,7 +8,7 @@ Status key: ✅ done and tested · 🚧 in progress · ⏳ not started.
 | 2 Voice | STT/TTS providers, WebSocket audio, VAD, barge-in, real amplitude visualiser | ✅ see below |
 | 3 Memory | Postgres + pgvector, Alembic, memory extraction/retrieval, memory manager UI, temporary chats | ✅ see below |
 | 4 RAG | Ingestion worker, hybrid search, rerank, citations, knowledge-base UI | ✅ see below |
-| 5 Agent + tools | LangGraph orchestrator, tool registry + permissions, reminders/tasks/notes, web research | ⏳ |
+| 5 Agent + tools | LangGraph orchestrator, tool registry + permissions, reminders/tasks/notes, web research | ✅ see below |
 | 6 Personalisation | Preferences, projects, schedules, proactive notifications | ⏳ |
 | 7 Eval + deploy | Langfuse, eval datasets, metrics dashboard, Docker deployment | ⏳ |
 
@@ -62,6 +62,74 @@ Not verified / limitations
 - Transcription is per utterance (Whisper is not a streaming model): there are no live partial captions.
 - Voice and speed settings are stored in the browser (localStorage), not per account. That moves into user settings in Phase 6.
 - Only English Kokoro voices are offered in the picker; Whisper auto-detects other languages.
+
+## Phase 5 — agent and tools (2026-11-22) ✅
+
+Architecture
+- **LangGraph agent** (`app/agent/graph.py`): `model → approve → tools → model …` (up to 12 model steps).
+  - The model step streams its text to the user and collects tool calls.
+  - The approve step pauses with `interrupt()` for actions that need confirmation; it has no side effects, so
+    resuming is safe.
+  - The tools step runs the calls.
+  - Live objects travel in the run context, never in checkpoints.
+- **29 tools** (`app/tools/builtin/`), each with a Pydantic input schema, timeout, permission level and audit-log entry:
+  - **Time and information:** time, weather (Open-Meteo), web search (**SearXNG** in Docker, no API key), reading web
+    pages (refuses private and local addresses at every redirect; content is wrapped as untrusted).
+  - **Productivity:** tasks, reminders, notes (embedded so they're searchable), calendar events, notifications.
+  - **Your knowledge:** document and code search, reading uploaded project files, memory search.
+  - **System:** LOKI's own logs, system info, allowlisted dev commands, apps and workflows
+    (`backend/config/automation.json`), opening websites.
+- **Permissions:**
+  - *read* tools run automatically.
+  - *reversible* tools run automatically unless you set them to "ask me first" or "off".
+  - *confirm* tools always ask: deleting tasks, notes or events, running commands, opening URLs. That can't be
+    switched off.
+  - The executor enforces all of this whatever the model asks.
+  - Commands are allowlisted ids only: no shell, and the argv comes from config.
+- **Approvals name the target:** before asking, a check finds the item and describes exactly what will happen
+  ("Permanently delete task “buy groceries” (due Mon 23 Nov 09:00)"). An impossible request is rejected without
+  asking you.
+- **Reminders:** a scheduler (15 s poll) delivers them as stored notifications, pushed live to every open tab (toast,
+  bell, optional desktop notification). Reminders that fell due while LOKI was off are delivered at start-up.
+- **Timezone:** the browser reports its IANA timezone. The prompt shows local time plus a 7-day date table.
+
+Guards added because of failures seen in live runs with `qwen3:4b-instruct`
+| Live failure | Fix |
+|---|---|
+| Later turns said "Task created/deleted" **without calling tools**, copying earlier text-only replies | History replays past tool calls and results; firmer prompt; **unbacked-claim check** (each claim must be backed by a matching successful tool this turn or earlier on the same item), otherwise a visible correction and one retry |
+| "Friday" → Thursday; "tomorrow" → day after | Date fields accept the user's own words ("Friday 10am", "in 2 hours", "27 Nov 18:00"), resolved exactly in code (20 tested cases) |
+| Invented ids (`task-7c2a…`), and you were asked to approve deleting them | Tools accept titles; targets are checked before approval |
+| A 72 s / 4k-token loop repeating "I'll now list your open tasks." | Repetition guard (third identical sentence ends the step); detection of promises without action |
+| A recap of an earlier deletion was flagged as a false claim | Claims are matched against earlier successful steps by item title |
+| Ran out of steps and narrated "Creating note… Notification set" | Steps raised to 12; the final step tells the model it has no tools; claims made then get a visible correction |
+| Silently skipped "save as a note" / "notify me" | Completion check: explicitly requested actions (note, notify, remind, task, event) must succeed before the turn ends; one targeted retry |
+| Repeated a false claim after the retry | A false claim never stands: a visible correction names what was **not** done |
+| Windows has no timezone database (`zoneinfo` failed even for UTC) | `tzdata` dependency |
+| Ollama silently truncated prompts at 4,096 tokens (also affected Phase 4) | `num_ctx` set to 12,288 for chat and warm-up |
+
+Verified
+- **156 backend tests** pass on SQLite and on Postgres (agent loop, approvals, denial, pre-approval rejection,
+  invalid args, unknown tools, step limit, switched-off tools, preference locks, reminders → notifications,
+  CRUD and isolation, SSRF refusal, untrusted wrapping, allowlisted command runs after approval, all guards above).
+- **Live with the real model**, all six scenarios from the brief:
+  - reminder "tomorrow at 10 AM" → Mon 23 Nov 10:00
+  - tasks for Friday and tomorrow → correct dates
+  - weather (umbrella question answered from Open-Meteo)
+  - web research with 3 cited bullets from real SearXNG results
+  - delete with approval, and a refusal respected
+  - the **multi-step workflow** (search → recover from 403 → read 3 sources → save a structured note → notify):
+    done in about 30 s, with a correction shown for one premature claim
+- **Browser:** tool steps under replies; an approval card naming the target, then deletion; a reminder delivered
+  as a toast and bell badge (≈19 s after due, within the 15 s poll); Planner tabs; Tools page with locked settings
+  and the activity log.
+
+Limits
+- 4B model quality: research content can be loose (it once called a closed-source product "open-source", and
+  included non-voice platforms). Corrections can appear mid-reply when the model claims something early.
+- Claim and request detection is pattern-based (English phrasing); unusual wording can slip past.
+- Calendar is LOKI's own (no Google or Outlook sync yet); notifications only reach open LOKI tabs or the desktop (no
+  phone push yet).
+- Gemini tool calling is implemented but untested (no API key).
 
 ## Phase 4 — knowledge base / RAG (2026-11-22) ✅
 

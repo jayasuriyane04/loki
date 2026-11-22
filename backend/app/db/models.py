@@ -116,6 +116,8 @@ class Message(Base):
     first_token_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Document passages given to the model for this reply, with which ones it actually cited (Phase 4).
     citations: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
+    # Tool calls made while producing this reply: [{id, tool, args, status, summary, approved}] (Phase 5).
+    tool_steps: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")
@@ -126,6 +128,8 @@ class UserSettings(Base):
 
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     memory_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    timezone: Mapped[str] = mapped_column(String(64), default="UTC")  # IANA name, from the browser
+    tool_prefs: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # {tool: "auto" | "confirm" | "off"}
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
 
 
@@ -151,6 +155,100 @@ class Memory(Base):
     use_count: Mapped[int] = mapped_column(Integer, default=0)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM), nullable=True)
     embedding_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(300))
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    project: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    priority: Mapped[str] = mapped_column(String(8), default="normal")  # low | normal | high
+    status: Mapped[str] = mapped_column(String(8), default="open")  # open | done
+    due_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    created_by: Mapped[str] = mapped_column(String(8), default="user")  # user | loki
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
+
+
+class Reminder(Base):
+    __tablename__ = "reminders"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    text: Mapped[str] = mapped_column(String(500))
+    remind_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    status: Mapped[str] = mapped_column(String(12), default="scheduled")  # scheduled | delivered | cancelled
+    delivered_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    created_by: Mapped[str] = mapped_column(String(8), default="user")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class Note(Base):
+    __tablename__ = "notes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(300))
+    body: Mapped[str] = mapped_column(Text)
+    project: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(8), default="user")
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
+
+
+class Event(Base):
+    """LOKI's own calendar (external calendar sync is a later integration)."""
+
+    __tablename__ = "events"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(300))
+    starts_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    ends_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    location: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[str] = mapped_column(String(8), default="user")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(16))  # reminder | agent | system
+    title: Mapped[str] = mapped_column(String(300))
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+
+
+class ToolExecution(Base):
+    """Audit log: every tool call LOKI made or proposed, with its arguments, outcome and approval."""
+
+    __tablename__ = "tool_executions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("conversations.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    tool: Mapped[str] = mapped_column(String(64))
+    arguments: Mapped[dict] = mapped_column(JSON)
+    permission: Mapped[str] = mapped_column(String(10))  # read | reversible | confirm
+    status: Mapped[str] = mapped_column(String(10))  # ok | error | denied | timeout | invalid | disabled
+    approved: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # None = no approval needed
+    summary: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    result: Mapped[str | None] = mapped_column(Text, nullable=True)  # truncated
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    duration_ms: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 
 
 class Document(Base):

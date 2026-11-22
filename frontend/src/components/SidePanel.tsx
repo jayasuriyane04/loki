@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Bell,
   BookOpen,
   Brain,
   ChartColumn,
@@ -19,9 +18,6 @@ import { useState } from "react";
 import { useChat } from "@/store/chat";
 
 const UPCOMING = [
-  { icon: Wrench, label: "Tools", phase: 5 },
-  { icon: ListTodo, label: "Tasks", phase: 5 },
-  { icon: Bell, label: "Reminders", phase: 5 },
   { icon: FolderKanban, label: "Projects", phase: 6 },
   { icon: ChartColumn, label: "Analytics", phase: 7 },
 ];
@@ -149,8 +145,10 @@ export function SidePanel({ onNavigate }: { onNavigate?: () => void }) {
       <div className="border-t border-line p-2">
         {(
           [
+            ["planner", ListTodo, "Planner"],
             ["memories", Brain, "Memory"],
             ["knowledge", BookOpen, "Knowledge base"],
+            ["tools", Wrench, "Tools"],
           ] as const
         ).map(([key, Icon, label]) => (
           <button

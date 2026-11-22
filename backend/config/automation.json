@@ -1,0 +1,55 @@
+{
+  "_comment": "Allowlists for LOKI's system/dev tools. LOKI can only run what is listed here; commands always ask for approval. Paths are relative to the LOKI folder. Edit freely and restart the backend.",
+  "commands": {
+    "git_status": {
+      "description": "Show uncommitted changes in the LOKI repository",
+      "argv": ["git", "status", "--short", "--branch"],
+      "cwd": "."
+    },
+    "git_log": {
+      "description": "Show the last 10 commits of the LOKI repository",
+      "argv": ["git", "log", "--oneline", "-10"],
+      "cwd": "."
+    },
+    "backend_tests": {
+      "description": "Run LOKI's backend test suite",
+      "argv": [".venv/Scripts/python.exe", "-m", "pytest", "-q", "-p", "no:cacheprovider"],
+      "cwd": "backend",
+      "timeout_s": 300
+    },
+    "frontend_lint": {
+      "description": "Lint LOKI's frontend",
+      "argv": ["npx.cmd", "eslint", "src"],
+      "cwd": "frontend",
+      "timeout_s": 120
+    },
+    "docker_ps": {
+      "description": "List LOKI's running Docker containers",
+      "argv": ["docker", "compose", "ps"],
+      "cwd": "."
+    }
+  },
+  "apps": {
+    "notepad": { "description": "Notepad", "argv": ["notepad.exe"] },
+    "calculator": { "description": "Calculator", "argv": ["calc.exe"] },
+    "file_explorer": { "description": "File Explorer at the LOKI folder", "argv": ["explorer.exe", "."] },
+    "vscode": { "description": "Visual Studio Code at the LOKI folder", "argv": ["code", "."] }
+  },
+  "workflows": {
+    "daily_overview": {
+      "description": "Today's open tasks, upcoming reminders and calendar for the next 24 hours",
+      "steps": [
+        { "tool": "list_tasks", "args": { "status": "open" } },
+        { "tool": "list_reminders", "args": {} },
+        { "tool": "list_events", "args": { "days": 1 } }
+      ]
+    },
+    "start_coding": {
+      "description": "Open VS Code on LOKI and show the repository status",
+      "steps": [
+        { "tool": "open_app", "args": { "app": "vscode" } },
+        { "tool": "run_command", "args": { "command": "git_status" } }
+      ]
+    }
+  }
+}

@@ -1,10 +1,11 @@
 import json
 import time
+import uuid
 from collections.abc import AsyncIterator
 
 import httpx
 
-from app.llm.base import ChatMessage, LLMError, LLMProvider, ProviderHealth, StreamChunk
+from app.llm.base import ChatMessage, LLMError, LLMProvider, ProviderHealth, StreamChunk, ToolCall
 from app.llm.http import open_stream
 
 
@@ -31,27 +32,40 @@ class GeminiProvider(LLMProvider):
         )
 
     @staticmethod
-    def _to_payload(messages: list[ChatMessage], temperature: float, max_tokens: int) -> dict:
+    def _to_payload(
+        messages: list[ChatMessage], temperature: float, max_tokens: int, tools: list[dict] | None = None
+    ) -> dict:
+        """Map chat messages (incl. tool calls/results) to Gemini `contents`. Untested without an API key."""
         system = "\n\n".join(m.content for m in messages if m.role == "system")
-        contents = [
-            {"role": "model" if m.role == "assistant" else "user", "parts": [{"text": m.content}]}
-            for m in messages
-            if m.role != "system"
-        ]
+        contents = []
+        for m in messages:
+            if m.role == "system":
+                continue
+            if m.role == "tool":
+                contents.append({"role": "user", "parts": [
+                    {"functionResponse": {"name": m.tool_name or "tool", "response": {"content": m.content}}}]})
+                continue
+            parts: list[dict] = [{"text": m.content}] if m.content else []
+            parts += [{"functionCall": {"name": c.name, "args": c.arguments}} for c in m.tool_calls]
+            contents.append({"role": "model" if m.role == "assistant" else "user", "parts": parts or [{"text": ""}]})
         payload: dict = {
             "contents": contents,
             "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
         }
         if system:
             payload["systemInstruction"] = {"parts": [{"text": system}]}
+        if tools:
+            payload["tools"] = [{"functionDeclarations": [
+                {"name": t["function"]["name"], "description": t["function"]["description"],
+                 "parametersJsonSchema": t["function"]["parameters"]} for t in tools]}]
         return payload
 
     async def stream_chat(
-        self, messages: list[ChatMessage], *, temperature: float, max_tokens: int
+        self, messages: list[ChatMessage], *, temperature: float, max_tokens: int, tools: list[dict] | None = None
     ) -> AsyncIterator[StreamChunk]:
         if not self._api_key:
             raise LLMError("GEMINI_API_KEY is not set.", provider=self.name)
-        payload = self._to_payload(messages, temperature, max_tokens)
+        payload = self._to_payload(messages, temperature, max_tokens, tools)
         usage: dict = {}
         async with open_stream(
             self._client,
@@ -72,7 +86,10 @@ class GeminiProvider(LLMProvider):
                         for part in (cand.get("content") or {}).get("parts", []):
                             if part.get("thought"):
                                 continue
-                            if text := part.get("text"):
+                            if fc := part.get("functionCall"):
+                                yield StreamChunk(tool_calls=[ToolCall(
+                                    id=f"call_{uuid.uuid4().hex[:10]}", name=fc.get("name", ""), arguments=fc.get("args") or {})])
+                            elif text := part.get("text"):
                                 yield StreamChunk(delta=text)
             except httpx.ReadTimeout as e:
                 raise LLMError("Gemini stopped responding (idle timeout).", provider=self.name) from e
