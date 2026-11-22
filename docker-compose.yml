@@ -1,0 +1,22 @@
+# Data services for Phase 3+. NOT yet tested on this machine (Docker is not installed).
+# Usage: docker compose up -d   then set DATABASE_URL=postgresql+asyncpg://loki:loki@localhost:5432/loki
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: loki
+      POSTGRES_PASSWORD: loki  # local development only
+      POSTGRES_DB: loki
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loki"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:6379:6379"]
+
+volumes:
+  pgdata:

@@ -1,0 +1,101 @@
+import json
+import time
+from collections.abc import AsyncIterator
+
+import httpx
+
+from app.llm.base import ChatMessage, LLMError, LLMProvider, ProviderHealth, StreamChunk
+from app.llm.http import open_stream
+
+
+class GeminiProvider(LLMProvider):
+    name = "gemini"
+
+    def __init__(
+        self,
+        model: str,
+        *,
+        api_key: str | None,
+        base_url: str,
+        connect_timeout_s: float,
+        idle_timeout_s: float,
+        retries: int,
+    ) -> None:
+        super().__init__(model)
+        self._api_key = api_key
+        self._retries = retries
+        self._client = httpx.AsyncClient(
+            base_url=base_url,
+            timeout=httpx.Timeout(connect=connect_timeout_s, read=idle_timeout_s, write=10, pool=5),
+            headers={"x-goog-api-key": api_key or ""},
+        )
+
+    @staticmethod
+    def _to_payload(messages: list[ChatMessage], temperature: float, max_tokens: int) -> dict:
+        system = "\n\n".join(m.content for m in messages if m.role == "system")
+        contents = [
+            {"role": "model" if m.role == "assistant" else "user", "parts": [{"text": m.content}]}
+            for m in messages
+            if m.role != "system"
+        ]
+        payload: dict = {
+            "contents": contents,
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+        }
+        if system:
+            payload["systemInstruction"] = {"parts": [{"text": system}]}
+        return payload
+
+    async def stream_chat(
+        self, messages: list[ChatMessage], *, temperature: float, max_tokens: int
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._api_key:
+            raise LLMError("GEMINI_API_KEY is not set.", provider=self.name)
+        payload = self._to_payload(messages, temperature, max_tokens)
+        usage: dict = {}
+        async with open_stream(
+            self._client,
+            "POST",
+            f"/models/{self.model}:streamGenerateContent",
+            params={"alt": "sse"},
+            json=payload,
+            provider=self.name,
+            retries=self._retries,
+        ) as resp:
+            try:
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    data = json.loads(line[5:].strip())
+                    usage = data.get("usageMetadata") or usage
+                    for cand in data.get("candidates", [])[:1]:
+                        for part in (cand.get("content") or {}).get("parts", []):
+                            if part.get("thought"):
+                                continue
+                            if text := part.get("text"):
+                                yield StreamChunk(delta=text)
+            except httpx.ReadTimeout as e:
+                raise LLMError("Gemini stopped responding (idle timeout).", provider=self.name) from e
+            except httpx.HTTPError as e:
+                raise LLMError(f"Gemini stream failed: {type(e).__name__}", provider=self.name) from e
+        yield StreamChunk(
+            done=True,
+            prompt_tokens=usage.get("promptTokenCount"),
+            completion_tokens=usage.get("candidatesTokenCount"),
+        )
+
+    async def health(self) -> ProviderHealth:
+        if not self._api_key:
+            return ProviderHealth(self.name, self.model, False, None, "GEMINI_API_KEY is not set")
+        start = time.perf_counter()
+        try:
+            resp = await self._client.get(f"/models/{self.model}", timeout=8)
+            latency = int((time.perf_counter() - start) * 1000)
+            if resp.status_code != 200:
+                return ProviderHealth(self.name, self.model, False, latency, f"HTTP {resp.status_code}")
+            return ProviderHealth(self.name, self.model, True, latency)
+        except httpx.HTTPError as e:
+            return ProviderHealth(self.name, self.model, False, None, f"Gemini unreachable ({type(e).__name__})")
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
