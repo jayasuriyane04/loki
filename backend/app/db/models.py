@@ -2,7 +2,19 @@ import uuid
 from datetime import UTC, datetime
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, TypeDecorator, Uuid
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    TypeDecorator,
+    UniqueConstraint,
+    Uuid,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from app.core.config import get_settings
@@ -102,6 +114,8 @@ class Message(Base):
     completion_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     first_token_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Document passages given to the model for this reply, with which ones it actually cited (Phase 4).
+    citations: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")
@@ -137,3 +151,47 @@ class Memory(Base):
     use_count: Mapped[int] = mapped_column(Integer, default=0)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM), nullable=True)
     embedding_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+
+class Document(Base):
+    """An uploaded file in the user's knowledge base. Identity is (user, project, source path)."""
+
+    __tablename__ = "documents"
+    __table_args__ = (UniqueConstraint("user_id", "project", "source", name="uq_documents_user_project_source"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    project: Mapped[str] = mapped_column(String(100), default="")  # "" = no project
+    title: Mapped[str] = mapped_column(String(300))
+    source: Mapped[str] = mapped_column(String(500))  # file name or relative path inside an uploaded folder
+    file_type: Mapped[str] = mapped_column(String(16))  # pdf | markdown | text | html | code
+    language: Mapped[str | None] = mapped_column(String(32), nullable=True)  # for code
+    sha256: Mapped[str] = mapped_column(String(64))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | processing | ready | failed
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    chunk_count: Mapped[int] = mapped_column(Integer, default=0)
+    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    storage_path: Mapped[str] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
+    indexed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+
+class Chunk(Base):
+    """A searchable passage of a document. On Postgres there is also a generated `tsv` column (full-text search)."""
+
+    __tablename__ = "chunks"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    ordinal: Mapped[int] = mapped_column(Integer)
+    content: Mapped[str] = mapped_column(Text)
+    heading_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    page: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    line_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    line_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM), nullable=True)
+
+    document: Mapped[Document] = relationship(lazy="joined")

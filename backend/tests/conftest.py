@@ -36,12 +36,16 @@ os.environ["ENVIRONMENT"] = "test"
 os.environ["LLM_FALLBACK_PROVIDER"] = ""
 os.environ["LLM_FALLBACK_MODEL"] = ""
 os.environ["LLM_WARMUP"] = "false"
+os.environ["RERANK_MODEL_DIR"] = ""  # tests use FakeReranker; the real ONNX model is exercised by the live check
+os.environ["UPLOAD_DIR"] = tempfile.mkdtemp(prefix="loki-uploads-")
 os.environ["VOICE_ENABLED"] = "false"  # real Whisper/Kokoro are exercised by the live check, not unit tests
 
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.core import ratelimit  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
+from app.knowledge.rerank import Reranker  # noqa: E402
+from app.knowledge.service import KnowledgeService  # noqa: E402
 from app.llm.embeddings import EmbeddingProvider  # noqa: E402
 from app.memory.service import MemoryService  # noqa: E402
 from app.llm.base import ChatMessage, LLMError, LLMProvider, ProviderHealth, StreamChunk  # noqa: E402
@@ -116,6 +120,19 @@ class FakeEmbeddings(EmbeddingProvider):
         return ProviderHealth(self.name, self.model, True, 1)
 
 
+class FakeReranker(Reranker):
+    """Relevance = share of the query's content words found in the passage."""
+
+    name, state = "fake-rerank", "ready"
+
+    async def load(self):
+        pass
+
+    async def score(self, query, passages):
+        q = {w for w in re.findall(r"[a-z0-9]+", query.lower()) if w not in FakeEmbeddings._STOP and len(w) > 2}
+        return [len(q & set(re.findall(r"[a-z0-9]+", p.lower()))) / (len(q) or 1) for p in passages]
+
+
 @pytest.fixture
 def fake() -> FakeProvider:
     return FakeProvider()
@@ -129,6 +146,8 @@ def client(fake: FakeProvider):
         app.state.llm = LLMRouter(fake, None, temperature=0, max_tokens=64)
         app.state.embeddings = FakeEmbeddings()
         app.state.memory = MemoryService(app.state.llm, app.state.embeddings, get_settings())
+        app.state.ingestor.embeddings = app.state.embeddings
+        app.state.knowledge = KnowledgeService(app.state.embeddings, FakeReranker(), get_settings())
         yield c
 
 

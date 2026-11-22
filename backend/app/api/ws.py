@@ -41,7 +41,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
 
     await ws.accept()
     memory: MemoryService | None = ws.app.state.memory
-    service = ChatService(ws.app.state.llm, settings, memory)
+    service = ChatService(ws.app.state.llm, settings, memory, ws.app.state.knowledge)
     background: set[asyncio.Task[None]] = ws.app.state.background
     voice: VoiceManager = ws.app.state.voice
     voice_cfg = WSVoiceConfig(type="voice_config", voice=settings.tts_voice, speed=settings.tts_speed)

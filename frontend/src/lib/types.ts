@@ -27,6 +27,7 @@ export type Message = {
   completion_tokens: number | null;
   latency_ms: number | null;
   first_token_ms: number | null;
+  citations?: Citation[] | null;
   created_at: string;
 };
 
@@ -49,6 +50,83 @@ export type Memory = {
 };
 
 export type MemoryRef = { id: string; kind: MemoryKind; content: string };
+
+/** A document passage LOKI was shown for a reply; `cited` = the answer referenced it as [n]. */
+export type Citation = {
+  n: number;
+  document_id: string;
+  chunk_id: string;
+  title: string;
+  source: string;
+  project: string | null;
+  heading: string | null;
+  page: number | null;
+  line_start: number | null;
+  line_end: number | null;
+  score: number;
+  snippet: string;
+  cited: boolean;
+};
+
+export type DocStatus = "pending" | "processing" | "ready" | "failed";
+
+export type DocumentInfo = {
+  id: string;
+  project: string;
+  title: string;
+  source: string;
+  file_type: "pdf" | "markdown" | "text" | "html" | "code";
+  language: string | null;
+  size_bytes: number;
+  status: DocStatus;
+  error: string | null;
+  chunk_count: number;
+  page_count: number | null;
+  created_at: string;
+  updated_at: string;
+  indexed_at: string | null;
+};
+
+export type ChunkInfo = {
+  id: string;
+  ordinal: number;
+  content: string;
+  heading_path: string | null;
+  page: number | null;
+  line_start: number | null;
+  line_end: number | null;
+};
+
+export type UploadResult = {
+  source: string;
+  status: "queued" | "unchanged" | "rejected";
+  document_id: string | null;
+  reason: string | null;
+};
+
+export type SearchHit = {
+  document_id: string;
+  title: string;
+  source: string;
+  project: string;
+  heading_path: string | null;
+  page: number | null;
+  line_start: number | null;
+  line_end: number | null;
+  content: string;
+  score: number;
+  rerank: number | null;
+  vector_rank: number | null;
+  keyword_rank: number | null;
+};
+
+export type KnowledgeStatus = {
+  documents: number;
+  by_status: Partial<Record<DocStatus, number>>;
+  chunks: number;
+  embedding_model: string;
+  reranker: { model: string | null; state: string; error: string | null };
+};
 export type MemoryOp = { action: "add" | "update" | "delete"; id: string; kind: MemoryKind; content: string };
 
 /** Client-side view of a message: adds transient flags that never come from the server. */

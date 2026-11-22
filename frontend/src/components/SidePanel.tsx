@@ -19,7 +19,6 @@ import { useState } from "react";
 import { useChat } from "@/store/chat";
 
 const UPCOMING = [
-  { icon: BookOpen, label: "Knowledge base", phase: 4 },
   { icon: Wrench, label: "Tools", phase: 5 },
   { icon: ListTodo, label: "Tasks", phase: 5 },
   { icon: Bell, label: "Reminders", phase: 5 },
@@ -148,19 +147,27 @@ export function SidePanel({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <div className="border-t border-line p-2">
-        <button
-          onClick={() => {
-            setView(view === "memories" ? "assistant" : "memories");
-            onNavigate?.();
-          }}
-          aria-current={view === "memories" ? "page" : undefined}
-          className={`mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
-            view === "memories" ? "bg-cyan/[0.08] text-ink" : "text-dim hover:bg-white/[0.03] hover:text-ink"
-          }`}
-        >
-          <Brain size={14} className="text-cyan" />
-          Memory
-        </button>
+        {(
+          [
+            ["memories", Brain, "Memory"],
+            ["knowledge", BookOpen, "Knowledge base"],
+          ] as const
+        ).map(([key, Icon, label]) => (
+          <button
+            key={key}
+            onClick={() => {
+              setView(view === key ? "assistant" : key);
+              onNavigate?.();
+            }}
+            aria-current={view === key ? "page" : undefined}
+            className={`mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
+              view === key ? "bg-cyan/[0.08] text-ink" : "text-dim hover:bg-white/[0.03] hover:text-ink"
+            }`}
+          >
+            <Icon size={14} className="text-cyan" />
+            {label}
+          </button>
+        ))}
         <div className="hud-label px-3 pb-1 pt-1">Coming next</div>
         {UPCOMING.map(({ icon: Icon, label, phase }) => (
           <div

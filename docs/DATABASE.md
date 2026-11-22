@@ -81,12 +81,24 @@ Server-side sessions so logout / revoke actually work (cookie holds an opaque to
 On SQLite (dev/tests) the vector is stored as text and similarity is computed in Python; on Postgres it is
 computed in SQL with pgvector (`<=>` cosine distance).
 
-## Phase 4 — Knowledge base ⏳
-- **documents**: `id, user_id, project_id null, title, source, file_type, sha256, size_bytes,
-  status (pending|processing|ready|failed), error, uploaded_at, updated_at`.
-- **chunks**: `id, document_id cascade, user_id, ordinal, content, heading_path, page,
-  token_count, embedding vector(N), tsv tsvector (generated), created_at`.
-  HNSW on embedding, GIN on tsv. Re-upload with a new sha256 deletes the old chunks in the same transaction.
+## Phase 4 — Knowledge base ✅ (migration `0003`)
+
+### documents
+`id, user_id (cascade), project ("" = none), title, source (relative path), file_type (pdf|markdown|text|html|code),
+language, sha256, size_bytes, status (pending|processing|ready|failed), error, chunk_count, page_count,
+storage_path, created_at, updated_at, indexed_at`. Unique `(user_id, project, source)`, so re-uploading the same
+path updates the document. The original file is kept under `UPLOAD_DIR/<user_id>/<document_id>.bin` (for re-indexing),
+and deleted with the document.
+
+### chunks
+`id, document_id (cascade), user_id (cascade, indexed), ordinal, content, heading_path, page, line_start,
+line_end, embedding vector(1024)`. On Postgres also
+`tsv tsvector GENERATED ALWAYS AS (setweight(to_tsvector('english', heading_path), 'A') || setweight(to_tsvector('english', content), 'B')) STORED`
+with a **GIN** index, and an **HNSW** cosine index on `embedding`. Re-indexing replaces a document's chunks in one
+transaction.
+
+### messages (added column)
+`citations json null`: the passages shown to the model for that reply, each with `cited` true/false.
 
 ## Phase 5 — Tools and tasks ⏳
 - **tool_executions**: `id, user_id, conversation_id, tool_name, arguments jsonb, status,
@@ -101,7 +113,7 @@ computed in SQL with pgvector (`<=>` cosine distance).
 - **notifications**: `id, user_id, title, body, read_at, created_at`.
 
 ## Migrations
-Alembic, in `backend/migrations/` (`0001` = Phase 1 baseline, `0002` = memory). They run automatically
+Alembic, in `backend/migrations/` (`0001` = Phase 1 baseline, `0002` = memory, `0003` = knowledge base). They run automatically
 at start-up (`AUTO_MIGRATE=true`) or manually:
 ```powershell
 cd backend; .\.venv\Scripts\python.exe -m alembic upgrade head

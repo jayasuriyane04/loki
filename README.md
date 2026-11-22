@@ -2,10 +2,11 @@
 
 A voice-first, memory-backed, tool-using personal AI assistant, built in phases.
 
-**Current status: Phases 1–3 done.** LOKI is a text **and voice** assistant with long-term memory: it learns
-useful facts about you as you talk, recalls them in later conversations, and shows you exactly what it saved and
-used. Everything runs locally: Whisper on the GPU, Kokoro speech, Ollama for the chat and embedding models,
-PostgreSQL + pgvector in Docker. Documents and tools are **not built yet**. See [docs/ROADMAP.md](docs/ROADMAP.md).
+**Current status: Phases 1–4 done.** LOKI is a text **and voice** assistant with long-term memory and a personal
+knowledge base: it learns useful facts about you as you talk, and answers from your own documents (notes, PDFs,
+project folders) with citations you can click. Everything runs locally: Whisper on the GPU, Kokoro speech, Ollama for
+the chat and embedding models, an ONNX reranker, PostgreSQL + pgvector in Docker. Tools and agents (Phase 5) are
+**not built yet**. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 | Doc | Contents |
 |---|---|
@@ -57,6 +58,10 @@ curl.exe -L -o backend\models\kokoro\kokoro-v1.0.onnx https://github.com/thewh1t
 ```powershell
 curl.exe -L -o backend\models\kokoro\voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
 ```
+Document reranker (one-time, about 280 MB; without it, search still works but ranks less precisely):
+```powershell
+$d="backend\models\reranker\mxbai-rerank-xsmall-v1"; New-Item -ItemType Directory -Force "$d\onnx" | Out-Null; foreach ($f in "tokenizer.json","onnx/model.onnx") { curl.exe -L -o "$d\$f" "https://huggingface.co/mixedbread-ai/mxbai-rerank-xsmall-v1/resolve/main/$f" }
+```
 No NVIDIA GPU? Set `STT_DEVICE=cpu` and `STT_COMPUTE_TYPE=int8` in `backend/.env`. To run without voice, set `VOICE_ENABLED=false`.
 
 Frontend, in a second terminal:
@@ -72,6 +77,10 @@ Open http://localhost:3000 and create an account. API docs: http://localhost:800
 **Memory:** LOKI saves useful facts you mention ("Saved: …" appears under its reply) and shows which
 memories it used for each answer. Open **Memory** in the side panel to search, edit, delete or switch memory
 off. Temporary chats never read or write memory. Passwords and other secrets are never stored.
+
+**Documents:** open **Knowledge base** in the side panel and add files or a whole project folder (optionally tagged
+with a project). When an answer uses them, it cites passages as numbered chips. Click one to see the exact text,
+page or lines. The search box there shows exactly which passages LOKI would use for a question.
 
 **Talking to LOKI:** click the mic button next to Send. The top bar shows a red **Mic live** badge while the
 microphone is on. Just speak; LOKI answers out loud, and you can interrupt it by talking (or say "stop").

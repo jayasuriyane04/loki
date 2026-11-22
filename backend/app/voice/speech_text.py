@@ -16,7 +16,8 @@ _SOFT_BREAK = re.compile(r"\s+(?=(?:and|but|or|so|because|which|while|where|alth
 
 
 def clean_for_speech(text: str) -> str:
-    t = re.sub(r"`([^`]*)`", r"\1", text)  # inline code → plain
+    t = re.sub(r"\s*\[\d{1,2}(?:\s*,\s*\d{1,2})*\]", "", text)  # citation markers [1], [2, 3] aren't spoken
+    t = re.sub(r"`([^`]*)`", r"\1", t)  # inline code → plain
     t = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", t)  # images
     t = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", t)  # links → link text
     t = re.sub(r"https?://\S+", "a link", t)

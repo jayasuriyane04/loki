@@ -69,6 +69,18 @@ class Settings(BaseSettings):
     memory_extraction: bool = True  # global kill-switch; users also have their own toggle
     auto_migrate: bool = True  # run Alembic migrations on start-up
 
+    # Knowledge base / RAG (Phase 4)
+    rag_enabled: bool = True
+    upload_dir: str = "data/uploads"
+    max_upload_mb: int = 20
+    max_files_per_upload: int = 200
+    chunk_chars: int = 1200
+    chunk_overlap_chars: int = 150
+    rag_candidates: int = 30  # hybrid-search candidates passed to the reranker
+    rag_top_k: int = 6  # passages given to the model
+    rerank_model_dir: str = "models/reranker/mxbai-rerank-xsmall-v1"
+    rerank_threshold: float = 0.25  # reranker probability below which a passage is not shown to the model
+
     # Context window budget for conversation history (characters, rough proxy for tokens)
     context_char_budget: int = 12000
     max_message_chars: int = 8000

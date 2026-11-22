@@ -15,6 +15,7 @@ from app.core.config import Settings
 from app.db.models import Conversation, Message, User
 from app.llm.base import ChatMessage, LLMError, StreamChunk
 from app.llm.router import LLMRouter, StreamStarted
+from app.knowledge.service import KnowledgeService, attach_citations
 from app.memory import store
 from app.memory.service import MemoryService
 from app.schemas import ConversationSummary, MessageOut, WSUserMessage
@@ -67,10 +68,17 @@ class TurnResult:
 
 
 class ChatService:
-    def __init__(self, llm: LLMRouter, settings: Settings, memory: MemoryService | None = None) -> None:
+    def __init__(
+        self,
+        llm: LLMRouter,
+        settings: Settings,
+        memory: MemoryService | None = None,
+        knowledge: KnowledgeService | None = None,
+    ) -> None:
         self.llm = llm
         self.settings = settings
         self.memory = memory
+        self.knowledge = knowledge
 
     async def _resolve_conversation(
         self, db: AsyncSession, user: User, msg: WSUserMessage, send: Send
@@ -137,15 +145,23 @@ class ChatService:
                         "memories": [{"id": str(m.id), "kind": m.kind, "content": m.content} for m in recall.used],
                     }
                 )
+        # The user's own documents are searched in every chat, temporary ones included (they are not "memory").
+        docs = None
+        if self.knowledge is not None:
+            if not memory_on:
+                await send({"type": "state", "state": "retrieving"})
+            docs = await self.knowledge.retrieve(db, user.id, content)
         system = build_system_prompt(
             user.display_name,
             voice=msg.input_mode == "voice",
             memory_block=recall.block if recall else None,
+            documents_block=docs.block if docs else None,
             conversation_summary=conv.summary,
             temporary=conv.is_temporary,
         )
         context = build_context(system, history, self.settings.context_char_budget)
 
+        sources = docs.sources if docs else []
         await send({"type": "state", "state": "processing"})
         assistant = Message(id=uuid.uuid4(), conversation_id=conv.id, role="assistant", content="")
         parts: list[str] = []
@@ -187,17 +203,17 @@ class ChatService:
             assistant.status = "complete" if parts else "error"
         except asyncio.CancelledError:
             assistant.status = "interrupted"
-            await self._finish(db, conv, assistant, parts, started, send, began)
+            await self._finish(db, conv, assistant, parts, started, send, began, sources)
             raise
         except LLMError as e:
             log.warning("llm failure", extra={"provider": e.provider, "error": str(e), "began": began})
             if not began:
                 raise TurnError("llm_unavailable", str(e)) from e
             assistant.status = "error"
-            await self._finish(db, conv, assistant, parts, started, send, began)
+            await self._finish(db, conv, assistant, parts, started, send, began, sources)
             await send({"type": "error", "code": "llm_stream_failed", "message": str(e)})
             return
-        await self._finish(db, conv, assistant, parts, started, send, began)
+        await self._finish(db, conv, assistant, parts, started, send, began, sources)
         if not parts:
             await send(
                 {
@@ -218,11 +234,17 @@ class ChatService:
         started: float,
         send: Send,
         began: bool,
+        sources: list[dict] | None = None,
     ) -> None:
         if not began:
             return
         assistant.content = "".join(parts)
         assistant.latency_ms = _ms_since(started)
+        if sources:
+            # Only numbers that match a passage the model was actually shown count as citations.
+            assistant.citations, invented = attach_citations([dict(s) for s in sources], assistant.content)
+            if invented:
+                log.warning("model cited passages that don't exist", extra={"numbers": invented})
         db.add(assistant)
         conv.updated_at = datetime.now(UTC)
         await db.commit()

@@ -40,9 +40,9 @@ type ChatState = {
   voiceStatus: VoiceStatus | null;
   voiceSettings: VoiceSettings;
   lastVoiceMetrics: { stt_ms: number | null; first_audio_ms: number | null };
-  view: "assistant" | "memories";
+  view: "assistant" | "memories" | "knowledge";
 
-  setView: (v: "assistant" | "memories") => void;
+  setView: (v: "assistant" | "memories" | "knowledge") => void;
   connect: (onUnauthorized: () => void) => void;
   disconnect: () => void;
   refreshConversations: () => Promise<void>;
@@ -100,7 +100,7 @@ const initial = {
   playing: false,
   voiceStatus: null,
   lastVoiceMetrics: { stt_ms: null, first_audio_ms: null },
-  view: "assistant" as const,
+  view: "assistant" as "assistant" | "memories" | "knowledge",
 };
 
 /** What the visualiser and status labels show, derived from all the moving parts. */

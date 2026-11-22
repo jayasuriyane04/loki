@@ -13,7 +13,15 @@ Honesty about your current abilities
   <memory> when relevant. Useful facts {name} shares are saved automatically after each reply, and {name}
   can view, edit or delete them in the Memory panel. Passwords, keys, codes and ID numbers are never
   saved: if {name} shares one, say plainly that you won't store it and suggest a password manager.
-- You do NOT yet have internet access, documents, reminders, calendars or any other tools.
+- You can search {name}'s uploaded documents (their knowledge base): relevant passages appear below
+  inside <documents> when they match the message.
+- You do NOT yet have internet access, reminders, calendars or any other tools.
+
+Where your information comes from: always make it clear which one you are using
+- What {name} told you (in this chat or in <memory>): say so ("you mentioned...").
+- {name}'s documents (<documents>): cite the passage number like [1].
+- Your general knowledge: no citation; don't present it as coming from their documents.
+- Your own ideas or recommendations: present them as suggestions, not facts.
 - Never claim to have done something you cannot do (e.g. "I've set a reminder"). Say plainly that the
   capability is not available yet and offer what you can do instead.
 - Never invent facts about {name}, their projects or past conversations. If something isn't in this chat
@@ -41,6 +49,7 @@ def build_system_prompt(
     *,
     voice: bool = False,
     memory_block: str | None = None,
+    documents_block: str | None = None,
     conversation_summary: str | None = None,
     temporary: bool = False,
 ) -> str:
@@ -54,6 +63,8 @@ def build_system_prompt(
         parts.append(f"\n\nEarlier in this conversation (summarised):\n{conversation_summary}")
     if memory_block:
         parts.append("\n\n" + memory_block)
+    if documents_block:
+        parts.append("\n\n" + documents_block)
     return "".join(parts)
 
 

@@ -1,12 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Brain, Mic, Sparkles } from "lucide-react";
+import { BookOpen, Brain, Mic, Sparkles } from "lucide-react";
 import { memo, useState } from "react";
 import { useChat } from "@/store/chat";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { UiMessage } from "@/lib/types";
+import type { Citation, UiMessage } from "@/lib/types";
 
 function Meta({ m }: { m: UiMessage }) {
   if (m.streaming || m.role !== "assistant") return null;
@@ -20,6 +20,82 @@ function Meta({ m }: { m: UiMessage }) {
       {m.status === "interrupted" && <span className="text-warn">interrupted</span>}
       {m.status === "error" && <span className="text-bad">failed</span>}
       <span>{bits.join(" · ")}</span>
+    </div>
+  );
+}
+
+function locate(c: Citation) {
+  if (c.page) return `p. ${c.page}`;
+  if (c.line_start) return `lines ${c.line_start}–${c.line_end}`;
+  return "";
+}
+
+/** Turn valid [n] markers into links the markdown renderer shows as chips. Unknown numbers stay plain text. */
+function linkCitations(m: UiMessage): string {
+  const valid = new Set((m.citations ?? []).map((c) => c.n));
+  if (!valid.size) return m.content;
+  return m.content.replace(/\[(\d{1,2})\](?!\()/g, (whole, n) => (valid.has(Number(n)) ? `[${n}](#cite-${n})` : whole));
+}
+
+function CiteChip({ n, m }: { n: number; m: UiMessage }) {
+  const c = m.citations?.find((x) => x.n === n);
+  return (
+    <button
+      onClick={() => document.getElementById(`src-${m.id}-${n}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" })}
+      title={c ? `${c.title}${c.heading ? " · " + c.heading : ""} ${locate(c)}` : undefined}
+      className="mx-0.5 inline-flex h-[18px] min-w-[18px] -translate-y-px items-center justify-center rounded-md border border-cyan/30 bg-cyan/10 px-1 align-middle font-mono text-[10.5px] text-cyan hover:bg-cyan/20"
+    >
+      {n}
+    </button>
+  );
+}
+
+function Sources({ m }: { m: UiMessage }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const all = m.citations ?? [];
+  if (m.streaming || !all.length) return null;
+  const cited = all.filter((c) => c.cited);
+  const shown = showAll ? all : cited;
+  return (
+    <div className="mt-3 text-[12.5px]">
+      <div className="hud-label mb-1.5 flex items-center gap-2">
+        <BookOpen size={11} /> Sources
+        {all.length > cited.length && (
+          <button onClick={() => setShowAll(!showAll)} className="normal-case tracking-normal text-faint hover:text-dim">
+            {showAll ? "show cited only" : `+${all.length - cited.length} consulted, not cited`}
+          </button>
+        )}
+      </div>
+      {!cited.length && !showAll && (
+        <p className="text-faint">Your documents were searched, but the answer doesn&apos;t cite them.</p>
+      )}
+      <ul className="space-y-1">
+        {shown.map((c) => (
+          <li key={c.n} id={`src-${m.id}-${c.n}`}>
+            <button
+              onClick={() => setOpen(open === c.n ? null : c.n)}
+              aria-expanded={open === c.n}
+              className={`flex w-full items-baseline gap-2 text-left ${c.cited ? "text-dim" : "text-faint"} hover:text-ink`}
+            >
+              <span className="font-mono text-cyan/80">[{c.n}]</span>
+              <span className="min-w-0 truncate">
+                {c.title}
+                {c.heading && <span className="text-faint"> · {c.heading}</span>}
+                <span className="font-mono text-faint"> {locate(c)}</span>
+              </span>
+            </button>
+            {open === c.n && (
+              <div className="mb-2 ml-7 mt-1 rounded-lg border border-line bg-night/60 p-2.5">
+                <div className="mb-1 font-mono text-[10.5px] text-faint">
+                  {c.source} · relevance {(c.score * 100).toFixed(0)}%
+                </div>
+                <pre className="whitespace-pre-wrap break-words font-sans text-[12px] leading-relaxed text-dim">{c.snippet}</pre>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -96,11 +172,26 @@ export const MessageView = memo(function MessageView({ m }: { m: UiMessage }) {
       <div className="min-w-0 flex-1">
         <div className={`prose-loki text-ink/95 ${m.streaming ? "caret" : ""}`}>
           {m.content ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ href, children, ...rest }) =>
+                  href?.startsWith("#cite-") ? (
+                    <CiteChip n={Number(href.slice(6))} m={m} />
+                  ) : (
+                    <a href={href} target="_blank" rel="noreferrer noopener" {...rest}>
+                      {children}
+                    </a>
+                  ),
+              }}
+            >
+              {linkCitations(m)}
+            </ReactMarkdown>
           ) : m.streaming ? null : (
             <span className="text-faint">(no answer)</span>
           )}
         </div>
+        <Sources m={m} />
         <Meta m={m} />
         <MemoryTrail m={m} />
       </div>

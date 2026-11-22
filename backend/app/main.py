@@ -8,11 +8,14 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import routes_auth, routes_conversations, routes_memory, routes_system, ws
+from app.api import routes_auth, routes_conversations, routes_knowledge, routes_memory, routes_system, ws
 from app.core.config import get_settings
 from app.core.logging import configure_logging, request_id_var
 from app.db import migrate
 from app.db.session import engine
+from app.knowledge.ingest import Ingestor
+from app.knowledge.rerank import OnnxCrossEncoder
+from app.knowledge.service import KnowledgeService
 from app.llm.embeddings import build_embeddings
 from app.llm.router import LLMRouter
 from app.memory.service import MemoryService
@@ -34,6 +37,11 @@ async def lifespan(app: FastAPI):
     app.state.embeddings = build_embeddings(settings)
     app.state.memory = MemoryService(app.state.llm, app.state.embeddings, settings)
     app.state.background = set()  # post-turn memory tasks
+    reranker = OnnxCrossEncoder(settings.rerank_model_dir) if settings.rerank_model_dir else None
+    app.state.knowledge = KnowledgeService(app.state.embeddings, reranker, settings)
+    app.state.ingestor = Ingestor(app.state.embeddings, settings)
+    await app.state.ingestor.start()  # re-queues documents left unfinished by a previous run
+    rerank_load = asyncio.create_task(reranker.load() if reranker else asyncio.sleep(0))
     app.state.voice = VoiceManager.from_settings(settings)
     app.state.voice.start()  # loads STT/TTS in the background; the API is usable immediately
     log.info(
@@ -48,6 +56,8 @@ async def lifespan(app: FastAPI):
     )
     yield
     warm.cancel()
+    rerank_load.cancel()
+    await app.state.ingestor.stop()
     for t in list(app.state.background):
         t.cancel()
     await asyncio.gather(*app.state.background, return_exceptions=True)
@@ -91,5 +101,6 @@ async def request_context(request: Request, call_next):
 app.include_router(routes_auth.router)
 app.include_router(routes_conversations.router)
 app.include_router(routes_memory.router)
+app.include_router(routes_knowledge.router)
 app.include_router(routes_system.router)
 app.include_router(ws.router)

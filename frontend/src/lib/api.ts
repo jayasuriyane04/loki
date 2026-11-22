@@ -1,7 +1,12 @@
 import type {
+  ChunkInfo,
   ConversationDetail,
   ConversationSummary,
+  DocumentInfo,
+  KnowledgeStatus,
   Memory,
+  SearchHit,
+  UploadResult,
   MemoryKind,
   ModelsStatus,
   User,
@@ -77,6 +82,34 @@ export const api = {
     request<Memory>(`/api/memories/${id}`, { method: "PATCH", body: json(body) }),
   deleteMemory: (id: string) => request<void>(`/api/memories/${id}`, { method: "DELETE" }),
   deleteAllMemories: () => request<{ deleted: number }>("/api/memories?confirm=true", { method: "DELETE" }),
+  documents: () => request<DocumentInfo[]>("/api/documents"),
+  document: (id: string) => request<DocumentInfo & { chunks: ChunkInfo[] }>(`/api/documents/${id}`),
+  deleteDocument: (id: string) => request<void>(`/api/documents/${id}`, { method: "DELETE" }),
+  reindexDocument: (id: string) => request<DocumentInfo>(`/api/documents/${id}/reindex`, { method: "POST" }),
+  uploadDocuments: async (files: { file: File; path: string }[], project: string): Promise<UploadResult[]> => {
+    const form = new FormData();
+    for (const f of files) {
+      form.append("files", f.file);
+      form.append("paths", f.path);
+    }
+    form.append("project", project);
+    let res: Response;
+    try {
+      res = await fetch(`${API_URL}/api/documents`, { method: "POST", body: form, credentials: "include" });
+    } catch {
+      throw new ApiError(0, "Can't reach the LOKI backend. Is it running?");
+    }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(res.status, typeof body?.detail === "string" ? body.detail : `Upload failed (${res.status})`);
+    return body as UploadResult[];
+  },
+  searchKnowledge: (q: string, project?: string) => {
+    const p = new URLSearchParams({ q });
+    if (project) p.set("project", project);
+    return request<SearchHit[]>(`/api/knowledge/search?${p}`);
+  },
+  knowledgeStatus: () => request<KnowledgeStatus>("/api/knowledge/status"),
+  projects: () => request<string[]>("/api/projects"),
   settings: () => request<{ memory_enabled: boolean }>("/api/settings"),
   updateSettings: (body: { memory_enabled: boolean }) =>
     request<{ memory_enabled: boolean }>("/api/settings", { method: "PATCH", body: json(body) }),

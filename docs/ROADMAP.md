@@ -7,7 +7,7 @@ Status key: ✅ done and tested · 🚧 in progress · ⏳ not started.
 | 1 Foundation | Text assistant: auth, conversations, streaming chat, model abstraction (Ollama + Gemini), command-centre UI | ✅ see below |
 | 2 Voice | STT/TTS providers, WebSocket audio, VAD, barge-in, real amplitude visualiser | ✅ see below |
 | 3 Memory | Postgres + pgvector, Alembic, memory extraction/retrieval, memory manager UI, temporary chats | ✅ see below |
-| 4 RAG | Ingestion worker, hybrid search, rerank, citations, knowledge-base UI | ⏳ |
+| 4 RAG | Ingestion worker, hybrid search, rerank, citations, knowledge-base UI | ✅ see below |
 | 5 Agent + tools | LangGraph orchestrator, tool registry + permissions, reminders/tasks/notes, web research | ⏳ |
 | 6 Personalisation | Preferences, projects, schedules, proactive notifications | ⏳ |
 | 7 Eval + deploy | Langfuse, eval datasets, metrics dashboard, Docker deployment | ⏳ |
@@ -62,6 +62,52 @@ Not verified / limitations
 - Transcription is per utterance (Whisper is not a streaming model): there are no live partial captions.
 - Voice and speed settings are stored in the browser (localStorage), not per account. That moves into user settings in Phase 6.
 - Only English Kokoro voices are offered in the picker; Whisper auto-detects other languages.
+
+## Phase 4 — knowledge base / RAG (2026-11-22) ✅
+
+Pipeline
+1. **Upload** (`POST /api/documents`, multipart; files, folders and drag and drop): path traversal refused; secrets files
+   (`.env`, `*.pem`, `id_rsa`, `credentials*.json`…), dependency/build folders and binaries skipped; 20 MB per
+   file, 200 per request. Identity = (user, project, path): re-uploading unchanged content is a no-op, changed
+   content is re-indexed in place.
+2. **Background ingestion** (in-process queue, one worker, unfinished jobs re-queued at start-up; Celery has no
+   Windows support): extract (pypdf per page; Markdown, text, HTML with scripts and styles stripped, 30+ code languages)
+   → clean (PDF hyphenation, whitespace) → **structure-aware chunks** (Markdown by heading path, PDF by page,
+   code by top-level definition; about 1,200 characters with about 150 characters of overlap; heading-only sections dropped) →
+   embeddings (`qwen3-embedding`, batched) → old chunks replaced in one transaction.
+3. **Hybrid search**: pgvector cosine plus Postgres full-text search (generated `tsvector`, headings weighted, GIN index),
+   fused with reciprocal-rank fusion → **cross-encoder rerank** (`mxbai-rerank-xsmall-v1`, ONNX on CPU, ~0.2 s for
+   30 passages) → passages scoring at least 0.25 are kept. Also kept: passages that both searches rank top 2, if
+   the reranker gives at least 60% of the threshold, because the reranker under-scores code.
+4. **Grounded answer**: up to 6 numbered passages go in `<documents>` (labelled as data; any `</documents>`,
+   `<system>` and similar tags inside them are neutralised). Rules in the system prompt separate what the user said,
+   their documents (cite [n]), general knowledge and LOKI's own suggestions.
+5. **Citations**: after the reply, `[n]` markers are matched against the passages actually shown. Invented numbers
+   never become citations. The source list (title, heading, page or line range, snippet, score, cited?) is saved
+   with the message and shown as clickable chips. `[n]` markers are not spoken in voice replies.
+
+Verified
+- 105 backend tests pass on **both SQLite and Postgres**: extraction (Markdown, code, real PDF, HTML), chunking with
+  overlap, unsafe-path and secret-file refusal, upload/update/delete lifecycle, privacy between users, failed-PDF
+  reporting, grounded answers with citation validation, no injection for unrelated questions, prompt-injection
+  neutralisation, temporary chats using documents.
+- Live (real models, a Markdown design doc + Python module + 2-page PDF): indexed in about 1 s; 5 of 5 questions handled
+  correctly. Answers came from the right file with the right location (Markdown section + lines, PDF page 2, the code's
+  line range), and the off-topic poem used no documents. First token in 0.1–0.35 s.
+- Browser: upload through the page (the `.env` was skipped), status badges, the search tester, inline citation
+  chips with tooltips, the expandable Sources list, and citations still shown after a reload.
+
+Found and fixed during live testing
+- The reranker (prose-trained) scored a code passage 0.21, under the cut-off, so a "where is the login endpoint"
+  question got no code. Fixed with definition-level code chunks, path + language labels for code passages, and
+  the both-searches-agree rule.
+
+Limits
+- The 4B model sometimes cites a passage that only partly supports a sentence: the citation number is valid, but the claim is broader.
+  Citations are checked for existence, not entailment.
+- Scanned PDFs (images) aren't read (no OCR). DOCX isn't supported yet.
+- The reranker is English-oriented; other languages still retrieve via embeddings and keywords, but rank less precisely.
+- Ingestion runs inside the API process; a separate worker (and Redis queue) is planned with scheduled jobs in Phase 6.
 
 ## Phase 3 — memory (2026-11-22) ✅
 

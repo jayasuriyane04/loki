@@ -66,6 +66,7 @@ class MessageOut(ORM):
     completion_tokens: int | None
     latency_ms: int | None
     first_token_ms: int | None
+    citations: list[dict] | None = None
     created_at: datetime
 
 
@@ -113,6 +114,61 @@ class SettingsOut(BaseModel):
 
 class SettingsUpdate(BaseModel):
     memory_enabled: bool | None = None
+
+
+# ---- knowledge base ----
+class DocumentOut(ORM):
+    id: uuid.UUID
+    project: str
+    title: str
+    source: str
+    file_type: str
+    language: str | None
+    size_bytes: int
+    status: str
+    error: str | None
+    chunk_count: int
+    page_count: int | None
+    created_at: datetime
+    updated_at: datetime
+    indexed_at: datetime | None
+
+
+class ChunkOut(ORM):
+    id: uuid.UUID
+    ordinal: int
+    content: str
+    heading_path: str | None
+    page: int | None
+    line_start: int | None
+    line_end: int | None
+
+
+class DocumentDetail(DocumentOut):
+    chunks: list[ChunkOut]
+
+
+class UploadResult(BaseModel):
+    source: str
+    status: Literal["queued", "unchanged", "rejected"]
+    document_id: uuid.UUID | None = None
+    reason: str | None = None
+
+
+class SearchHitOut(BaseModel):
+    document_id: uuid.UUID
+    title: str
+    source: str
+    project: str
+    heading_path: str | None
+    page: int | None
+    line_start: int | None
+    line_end: int | None
+    content: str
+    score: float
+    rerank: float | None
+    vector_rank: int | None
+    keyword_rank: int | None
 
 
 # ---- system ----

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/store/auth";
 import { useChat } from "@/store/chat";
 import { AssistantView } from "./AssistantView";
+import { KnowledgeBase } from "./KnowledgeBase";
 import { MemoryManager } from "./MemoryManager";
 import { SidePanel } from "./SidePanel";
 import { TopBar } from "./TopBar";
@@ -40,7 +41,9 @@ export function AppShell() {
         <aside className="hidden w-72 shrink-0 border-r border-line bg-night/40 lg:block">
           <SidePanel />
         </aside>
-        <main className="min-w-0 flex-1">{view === "memories" ? <MemoryManager /> : <AssistantView />}</main>
+        <main className="min-w-0 flex-1">
+          {view === "memories" ? <MemoryManager /> : view === "knowledge" ? <KnowledgeBase /> : <AssistantView />}
+        </main>
       </div>
 
       <AnimatePresence>

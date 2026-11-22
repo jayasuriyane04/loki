@@ -106,7 +106,21 @@ WebSocket events
 ```
 `memory_updated` arrives after the reply (extraction runs in the background) and only when something changed.
 
+## Knowledge base — Phase 4 ✅
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/documents` | multipart: `files[]`, optional `paths[]` (relative path per file, for folders), `project`. → `[UploadResult]` with `status: queued \| unchanged \| rejected` and `reason`. Indexing happens in the background |
+| GET | `/api/documents?project=` | `[Document]` with `status: pending \| processing \| ready \| failed`, `error`, `chunk_count`, `page_count` |
+| GET | `/api/documents/{id}` | `Document` + `chunks[]` (content, heading_path, page, line_start/line_end) |
+| DELETE | `/api/documents/{id}` | `204`; removes passages and the stored file |
+| POST | `/api/documents/{id}/reindex` | re-queue indexing |
+| GET | `/api/knowledge/search?q=&project=&limit=` | Exactly what chat retrieval returns: passages with `score`, `rerank`, `vector_rank`, `keyword_rank` |
+| GET | `/api/knowledge/status` | counts by status, passage count, embedding model, reranker `{model, state, error}` |
+| GET | `/api/projects` | project names used by documents and memories |
+
+Documents of other users are always `404`. `assistant_end.message.citations` (also stored on the message):
+`[{n, document_id, chunk_id, title, source, project, heading, page, line_start, line_end, score, snippet, cited}]`.
+
 ## Planned
-- Phase 4: `/api/documents` (multipart upload, list, delete, reindex), citations on `assistant_end`.
 - Phase 5: `/api/tools`, `/api/tool-executions`, `/api/tasks`, `/api/reminders`, WS `tool_call`, `tool_result`, `confirmation_required` / `confirm`.
 - Phase 7: `/api/metrics`.
