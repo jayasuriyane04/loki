@@ -108,6 +108,14 @@ and the model files you already downloaded (`backend/models`, and Whisper from y
 ```powershell
 docker compose --profile app up -d --build
 ```
+**One click:** `scripts\install-shortcuts.ps1` puts **LOKI** and **Stop LOKI** on your desktop.
+- **LOKI** starts the model server, Docker Desktop if needed, and the containers, then opens LOKI in the browser:
+  about 30 s from cold, 16 s when Docker is already running, 4 s when LOKI is already up.
+- **Stop LOKI** stops the app containers and the model server, which frees the GPU. The database keeps running.
+- Logs are in `%LOCALAPPDATA%\LOKI\logs`.
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-shortcuts.ps1
+```
 - Uses the same database as running from source. Run one backend at a time: stop the source backend first, or
   reminders can be delivered twice.
 - In the container, the desktop tools (run a command, open an app or website, workflows) are switched off
