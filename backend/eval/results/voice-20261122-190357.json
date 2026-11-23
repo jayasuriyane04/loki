@@ -1,0 +1,300 @@
+{
+  "suite": "voice",
+  "ran_at": "2026-11-22T19:03:57.071263+00:00",
+  "config": {
+    "stt": {
+      "provider": "faster_whisper",
+      "model": "small",
+      "state": "ready",
+      "error": null
+    },
+    "tts_voices": [
+      "af_heart",
+      "bm_george"
+    ],
+    "llm": "qwen3:4b-instruct",
+    "speech_source": "synthesised (Kokoro), clean audio"
+  },
+  "headline": {
+    "stt_wer": 0.0,
+    "stt_wer_raw": 0.025,
+    "stt_exact": "20/20",
+    "stt_p50_ms": 188.0,
+    "stt_p95_ms": 213.45,
+    "first_audio_p50_s": 1.481,
+    "first_audio_p95_s": 3.393,
+    "turn_total_p50_s": 2.222,
+    "barge_in_stop_p50_ms": 15.0,
+    "turn_errors": 0
+  },
+  "details": {
+    "recognition": [
+      {
+        "voice": "af_heart",
+        "ref": "Remind me to call the bank tomorrow at ten in the morning.",
+        "hyp": "Remind me to call the bank tomorrow at 10 in the morning.",
+        "wer": 0.0,
+        "wer_raw": 0.083,
+        "audio_s": 2.82,
+        "stt_ms": 222,
+        "rtf": 0.079
+      },
+      {
+        "voice": "af_heart",
+        "ref": "What is on my calendar for Friday?",
+        "hyp": "What is on my calendar for Friday?",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 1.88,
+        "stt_ms": 159,
+        "rtf": 0.085
+      },
+      {
+        "voice": "af_heart",
+        "ref": "Add milk, eggs and coffee to my shopping list.",
+        "hyp": "Add milk, eggs, and coffee to my shopping list.",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 2.65,
+        "stt_ms": 194,
+        "rtf": 0.073
+      },
+      {
+        "voice": "af_heart",
+        "ref": "How long is the grace period before late fees start?",
+        "hyp": "How long is the grace period before late fees start?",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 2.82,
+        "stt_ms": 185,
+        "rtf": 0.066
+      },
+      {
+        "voice": "af_heart",
+        "ref": "Search the web for the latest news about electric cars.",
+        "hyp": "Search the web for the latest news about electric cars.",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 3.2,
+        "stt_ms": 190,
+        "rtf": 0.059
+      },
+      {
+        "voice": "af_heart",
+        "ref": "Turn this into a note titled project ideas.",
+        "hyp": "Turn this into a note titled Project Ideas.",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 2.65,
+        "stt_ms": 185,
+        "rtf": 0.07
+      },
+      {
+        "voice": "af_heart",
+        "ref": "What did we decide about the database migration yesterday?",
+        "hyp": "What did we decide about the database migration yesterday?",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 3.26,
+        "stt_ms": 176,
+        "rtf": 0.054
+      },
+      {
+        "voice": "af_heart",
+        "ref": "Open the documentation for the invoicing service.",
+        "hyp": "Open the documentation for the invoicing service.",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 2.9,
+        "stt_ms": 189,
+        "rtf": 0.065
+      },
+      {
+        "voice": "af_heart",
+        "ref": "Set a reminder in two hours to stretch.",
+        "hyp": "Set a reminder in two hours to stretch.",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 2.2,
+        "stt_ms": 183,
+        "rtf": 0.083
+      },
+      {
+        "voice": "af_heart",
+        "ref": "Summarise the meeting notes from October.",
+        "hyp": "Summarize the meeting notes from October.",
+        "wer": 0.0,
+        "wer_raw": 0.167,
+        "audio_s": 2.15,
+        "stt_ms": 182,
+        "rtf": 0.084
+      },
+      {
+        "voice": "bm_george",
+        "ref": "Remind me to call the bank tomorrow at ten in the morning.",
+        "hyp": "Remind me to call the bank tomorrow at 10 in the morning.",
+        "wer": 0.0,
+        "wer_raw": 0.083,
+        "audio_s": 3.46,
+        "stt_ms": 213,
+        "rtf": 0.062
+      },
+      {
+        "voice": "bm_george",
+        "ref": "What is on my calendar for Friday?",
+        "hyp": "What is on my calendar for Friday?",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 2.54,
+        "stt_ms": 170,
+        "rtf": 0.067
+      },
+      {
+        "voice": "bm_george",
+        "ref": "Add milk, eggs and coffee to my shopping list.",
+        "hyp": "Add milk, eggs and coffee to my shopping list.",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 3.18,
+        "stt_ms": 191,
+        "rtf": 0.06
+      },
+      {
+        "voice": "bm_george",
+        "ref": "How long is the grace period before late fees start?",
+        "hyp": "How long is the grace period before late fees start?",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 3.56,
+        "stt_ms": 200,
+        "rtf": 0.056
+      },
+      {
+        "voice": "bm_george",
+        "ref": "Search the web for the latest news about electric cars.",
+        "hyp": "Search the web for the latest news about electric cars.",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 3.93,
+        "stt_ms": 203,
+        "rtf": 0.052
+      },
+      {
+        "voice": "bm_george",
+        "ref": "Turn this into a note titled project ideas.",
+        "hyp": "Turn this into a note titled Project Ideas.",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 3.52,
+        "stt_ms": 197,
+        "rtf": 0.056
+      },
+      {
+        "voice": "bm_george",
+        "ref": "What did we decide about the database migration yesterday?",
+        "hyp": "What did we decide about the database migration yesterday?",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 4.12,
+        "stt_ms": 187,
+        "rtf": 0.045
+      },
+      {
+        "voice": "bm_george",
+        "ref": "Open the documentation for the invoicing service.",
+        "hyp": "Open the documentation for the invoicing service.",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 3.43,
+        "stt_ms": 189,
+        "rtf": 0.055
+      },
+      {
+        "voice": "bm_george",
+        "ref": "Set a reminder in two hours to stretch.",
+        "hyp": "Set a reminder in two hours to stretch.",
+        "wer": 0.0,
+        "wer_raw": 0.0,
+        "audio_s": 2.73,
+        "stt_ms": 187,
+        "rtf": 0.068
+      },
+      {
+        "voice": "bm_george",
+        "ref": "Summarise the meeting notes from October.",
+        "hyp": "Summarize the meeting notes from October.",
+        "wer": 0.0,
+        "wer_raw": 0.167,
+        "audio_s": 2.77,
+        "stt_ms": 180,
+        "rtf": 0.065
+      }
+    ],
+    "turns": [
+      {
+        "question": "What time is it right now?",
+        "heard": "What time is it right now?",
+        "stt_ms": 157,
+        "stt_done_s": 0.175,
+        "first_token_s": 2.105,
+        "first_audio_s": 3.835,
+        "server_first_audio_ms": 3818,
+        "total_s": 3.836
+      },
+      {
+        "question": "Give me one tip for staying focused while working.",
+        "heard": "Give me one tip for staying focused while working.",
+        "stt_ms": 177,
+        "stt_done_s": 0.18,
+        "first_token_s": 0.532,
+        "first_audio_s": 1.624,
+        "server_first_audio_ms": 1622,
+        "total_s": 2.767
+      },
+      {
+        "question": "What is the capital of Japan?",
+        "heard": "What is the capital of Japan?",
+        "stt_ms": 165,
+        "stt_done_s": 0.167,
+        "first_token_s": 0.525,
+        "first_audio_s": 0.897,
+        "server_first_audio_ms": 895,
+        "total_s": 0.898
+      },
+      {
+        "question": "Tell me a short fact about the moon.",
+        "heard": "Tell me a short fact about the moon.",
+        "stt_ms": 170,
+        "stt_done_s": 0.173,
+        "first_token_s": 0.523,
+        "first_audio_s": 1.379,
+        "server_first_audio_ms": 1376,
+        "total_s": 2.222
+      },
+      {
+        "question": "How many days are there in a leap year?",
+        "heard": "How many days are there in a leap year?",
+        "stt_ms": 182,
+        "stt_done_s": 0.184,
+        "first_token_s": 0.527,
+        "first_audio_s": 1.481,
+        "server_first_audio_ms": 1479,
+        "total_s": 1.482
+      }
+    ],
+    "barge_in": [
+      {
+        "stop_ms": 16,
+        "audio_chunks_after_cancel": 0
+      },
+      {
+        "stop_ms": 15,
+        "audio_chunks_after_cancel": 0
+      },
+      {
+        "stop_ms": 14,
+        "audio_chunks_after_cancel": 0
+      }
+    ]
+  }
+}

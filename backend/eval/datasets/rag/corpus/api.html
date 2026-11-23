@@ -1,0 +1,14 @@
+<html><head><title>Meridian API reference</title></head><body>
+<h1>Meridian API reference</h1>
+<h2>Creating invoices</h2>
+<p>Send <code>POST /v2/invoices</code> with the customer id, line items and currency. Every create request must carry an
+<code>Idempotency-Key</code> header; a repeated key within 24 hours returns the original invoice instead of creating a
+second one.</p>
+<h2>Rate limits</h2>
+<p>Each API key may make 600 requests per minute. Requests over the limit get HTTP 429 with a Retry-After header in
+seconds.</p>
+<h2>Webhooks</h2>
+<p>Meridian sends invoice.paid and invoice.overdue events. Failed deliveries are retried 8 times with exponential
+backoff over roughly 24 hours. Every webhook carries an X-Meridian-Signature header: an HMAC-SHA256 of the raw body
+using your webhook secret.</p>
+</body></html>

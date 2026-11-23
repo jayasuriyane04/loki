@@ -224,6 +224,8 @@ async def _pre_open_url(ctx: ToolContext, a: OpenUrlIn) -> str:
 
 
 def describe_automation() -> str:
-    """For the system prompt: what the allowlists contain."""
+    """For the system prompt: what the allowlists contain (nothing when the desktop tools are switched off)."""
+    if "run_command" not in REGISTRY:
+        return "Desktop actions (running commands, opening apps or websites) are not available in this deployment."
     return (f"Allowed commands (run_command): {_choices('commands')}.\nApps (open_app): {_choices('apps')}.\n"
             f"Workflows (run_workflow): {_choices('workflows')}.")

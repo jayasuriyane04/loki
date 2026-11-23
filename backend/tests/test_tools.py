@@ -238,3 +238,15 @@ def test_allowlisted_command_runs_after_approval(client: TestClient, user: dict,
     assert "git log --oneline -10" in ask["call"]
     r = _results(events)[0]
     assert r["status"] == "ok" and r["data"]["exit_code"] == 0
+
+
+def test_false_no_access_reply_is_corrected(client: TestClient, user: dict, fake: FakeProvider):
+    client.post("/api/tasks", json={"title": "Call the bank"})
+    fake.script = ["I don't have access to your task list. Could you give me the task id?",
+                   [("complete_task", {"task": "Call the bank"})], "Marked “Call the bank” as done."]
+    with client.websocket_connect("/ws") as ws:
+        events = _turn(ws, "I called the bank, mark that task as done.")
+    text = "".join(e["delta"] for e in events if e["type"] == "token")
+    assert "(Correction: I can see your list" in text
+    assert [e["tool"] for e in _results(events)] == ["list_tasks", "complete_task"]  # looked up on its behalf
+    assert client.get("/api/tasks?status=all").json()[0]["status"] == "done"

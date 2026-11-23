@@ -10,7 +10,7 @@ Status key: ✅ done and tested · 🚧 in progress · ⏳ not started.
 | 4 RAG | Ingestion worker, hybrid search, rerank, citations, knowledge-base UI | ✅ see below |
 | 5 Agent + tools | LangGraph orchestrator, tool registry + permissions, reminders/tasks/notes, web research | ✅ see below |
 | 6 Personalisation | Preferences, projects, schedules, proactive notifications | ✅ see below |
-| 7 Eval + deploy | Langfuse, eval datasets, metrics dashboard, Docker deployment | ⏳ |
+| 7 Eval + deploy | Observability (built-in tracing), eval datasets, metrics dashboard, Docker deployment | ✅ see below |
 
 ## Phase 1 — scope
 Backend
@@ -62,6 +62,85 @@ Not verified / limitations
 - Transcription is per utterance (Whisper is not a streaming model): there are no live partial captions.
 - Voice and speed settings are saved to the account since Phase 6 (the browser keeps a copy).
 - Only English Kokoro voices are offered in the picker; Whisper auto-detects other languages.
+
+## Phase 7 — evaluation, observability and deployment (2026-11-23) ✅
+
+Choices: built-in tracing instead of Langfuse, and Docker on this PC (no cloud deployment).
+
+What was built
+- **Tracing** (`app/observability/`):
+  - Every chat or voice turn and every memory extraction is a trace, with spans for memory recall, retrieval, the
+    model phase and each tool call, plus guard events.
+  - Traces hold timings, counts, model/tool names and status only, never message content.
+  - Each HTTP request (route template, status, duration), each ERROR log line and a sessions gauge are metric
+    events.
+  - Writes are buffered and flushed every 5 s, off the request path, and pruned after 30 days.
+  - Tokens are now summed across agent steps; previously only the last step counted.
+- **Analytics page** (side panel):
+  - KPI rows for responses, voice, knowledge & memory, agent and system.
+  - Turns per day and median time to first word per day, with hover tooltips and a table view.
+  - Per-tool table, slowest endpoints, recent errors.
+  - The last 25 traces, each with a waterfall.
+  - Offline evaluation results with drill-down.
+- **Ratings:** 👍/👎 under every reply, counted on the Analytics page; this is the real-user testing signal.
+- **Offline evaluations** (`backend/eval/`, run with `python -m eval.run rag|agent|voice`): real models, a
+  separate `loki_eval` database, results in `eval/results/`.
+  - Retrieval: 38 labelled queries over a 7-file fictional project; Precision/Recall@K, NDCG, MRR for 5 search
+    modes.
+  - Answers: correctness, citation precision and validity, context relevance, faithfulness (LLM judge), abstention.
+  - Agent: 14 scenarios checked against the resulting state, including two with an injected tool failure.
+  - Voice: WER, recognition latency, time to first audio, barge-in.
+  - Full method and numbers: [EVALUATION.md](EVALUATION.md).
+- **Docker deployment:** `docker compose --profile app up -d --build` runs the backend (port 8100) and the Next.js
+  standalone frontend (port 3100) next to Postgres and SearXNG.
+  - Ollama stays on the host and is reached via `host.docker.internal`.
+  - Whisper runs on the RTX 5060 inside the container.
+  - Model files and the Whisper cache are mounted read-only, so nothing is downloaded twice.
+  - The desktop tools are switched off in the container (`DESKTOP_TOOLS=false`).
+  - Redis moved to an opt-in profile; it is still unused.
+- **Real-user testing protocol:** [USER_TESTING.md](USER_TESTING.md).
+
+Results (details in EVALUATION.md)
+
+| Suite | Result |
+|---|---|
+| Retrieval (production) | Recall@5 0.971 · P@1 0.971 · NDCG@5 0.945 · MRR 0.971 |
+| Answers | correct 0.971 · citation precision 0.939 · citation validity 0.971 · faithfulness 0.912 · 3/3 unanswerable declined |
+| Agent (42 runs) | task completion 1.000 · tool selection 1.000 · failure recovery 1.000 · 0 unnecessary calls |
+| Voice | WER 0.000 normalised (0.025 raw) · recognition p50 188 ms · first audio p50 1.48 s · barge-in stop 15 ms |
+
+Problems the evaluations found, and fixes
+| Problem | Fix |
+|---|---|
+| Reranking cost 1.1 s per query (CPU, batches padded to the longest passage) | Batch passages by length: about 600 ms, same scores |
+| "I called the bank, mark that task as done" failed 3/3: "I don't have access to your task list" | "mark … done" is a `complete_task` request. A false "can't see your list" makes the guard call the read-only list tool itself (audited, shown as a step); then the model completes it (3/3) |
+| The guard regex missed the model's curly apostrophe (’) | Normalised before guards run |
+| Trace waterfalls didn't show where the time went | `model` and `tool:<name>` spans |
+
+Verified
+- **186 backend tests** pass on SQLite and on Postgres (14 new in this phase): spans with and without
+  a trace, chat/tool/voice traces, guard events, costs, recovery rate, feedback ownership, HTTP/error events, path
+  traversal on eval reports, the desktop-tools switch, and the false-"no access" guard.
+- **Browser:** the Analytics page with live data; whole-number ticks and the unit in the title after fixing two
+  axis issues; trace waterfall with model and tool spans; a rating set and cleared.
+- **Docker:**
+  - both images built (backend 4.6 GB, mostly CUDA libraries; frontend 368 MB)
+  - the stack started healthy
+  - inside the container: 1 CUDA device, Whisper on `cuda` (233–299 ms for a 2.8 s phrase), Kokoro, reranker,
+    Ollama via `host.docker.internal`
+  - migration 0007 applied
+  - the UI on :3100 answered a chat in 2.1 s
+  - 25 tools, the 4 desktop tools excluded
+
+Limits
+- Synthetic speech makes WER a lower bound; real microphones and rooms are for the user-testing protocol.
+- The faithfulness judge is the same 4B model and noisy: it flagged clearly supported claims.
+- Documents uploaded from source keep Windows file paths. In the container they stay searchable, but re-indexing
+  needs a fresh upload.
+- One backend at a time against the database (source or container), or reminders may be delivered twice.
+- No cloud deployment (by choice). Remote use would need HTTPS, `COOKIE_SECURE=true`, CORS and a rebuilt frontend
+  URL; see the README.
+- Real-user testing itself is the user's to do; the protocol and the 👍/👎 signal are in place.
 
 ## Phase 6 — personalisation and proactive features (2026-11-22) ✅
 

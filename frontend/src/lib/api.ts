@@ -1,4 +1,7 @@
 import type {
+  EvalReport,
+  MetricsSummary,
+  TraceInfo,
   FolderScan,
   Learned,
   Preferences,
@@ -161,4 +164,9 @@ export const api = {
     request<ProjectInfo>(`/api/projects/${encodeURIComponent(name)}`, { method: "PATCH", body: json(body) }),
   generateOverview: (name: string) =>
     request<ProjectInfo>(`/api/projects/${encodeURIComponent(name)}/overview`, { method: "POST" }),
+  metricsSummary: (days: number) => request<MetricsSummary>(`/api/metrics/summary?days=${days}`),
+  traces: (limit = 30) => request<TraceInfo[]>(`/api/metrics/traces?limit=${limit}`),
+  evalReport: (file: string) => request<EvalReport>(`/api/metrics/evals/${encodeURIComponent(file)}`),
+  messageFeedback: (id: string, rating: 1 | -1 | null, note?: string) =>
+    request<void>(`/api/messages/${id}/feedback`, { method: "POST", body: json({ rating, note: note ?? null }) }),
 };

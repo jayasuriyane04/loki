@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BookOpen, Brain, Mic, Sparkles } from "lucide-react";
+import { BookOpen, Brain, Mic, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
+import { api } from "@/lib/api";
 import { memo, useState } from "react";
 import { useChat } from "@/store/chat";
 import { ToolSteps } from "./ToolSteps";
@@ -21,7 +22,30 @@ function Meta({ m }: { m: UiMessage }) {
       {m.status === "interrupted" && <span className="text-warn">interrupted</span>}
       {m.status === "error" && <span className="text-bad">failed</span>}
       <span>{bits.join(" · ")}</span>
+      {m.status === "complete" && <Feedback id={m.id} initial={m.feedback ?? null} />}
     </div>
+  );
+}
+
+/** Helpful / not helpful: the signal real-user testing is measured by (shown on the Analytics page). */
+function Feedback({ id, initial }: { id: string; initial: number | null }) {
+  const [rating, setRating] = useState<number | null>(initial);
+  const rate = (r: 1 | -1) => {
+    const next = rating === r ? null : r;
+    setRating(next);
+    api.messageFeedback(id, next).catch(() => setRating(rating));
+  };
+  return (
+    <span className="ml-1 flex items-center gap-0.5">
+      <button onClick={() => rate(1)} aria-label="Helpful" aria-pressed={rating === 1} title="Helpful"
+        className={`rounded p-0.5 hover:text-ink ${rating === 1 ? "text-ok" : "text-faint"}`}>
+        <ThumbsUp size={11} />
+      </button>
+      <button onClick={() => rate(-1)} aria-label="Not helpful" aria-pressed={rating === -1} title="Not helpful"
+        className={`rounded p-0.5 hover:text-ink ${rating === -1 ? "text-bad" : "text-faint"}`}>
+        <ThumbsDown size={11} />
+      </button>
+    </span>
   );
 }
 

@@ -129,8 +129,20 @@ All user-owned (`user_id` cascade, indexed); every row records `created_by` = `u
 
 No separate schedules table: jobs are fixed timers in the API process, and what they do is controlled by preferences.
 
+## Phase 7 — Observability ✅ (migration `0007`)
+- **traces**: `id, user_id (cascade, nullable), kind (chat_turn|voice_turn|memory_extract), status
+  (ok|error|interrupted|empty), input_mode, conversation_id, message_id, provider, model, duration_ms, first_token_ms,
+  first_audio_ms, stt_ms, prompt_tokens, completion_tokens (summed over agent steps), cost_usd (null = no price
+  configured), spans json [{name, start_ms, duration_ms, attrs}], attrs json (tool outcomes, citation counts, guard
+  events…), created_at (indexed)`. **No message content.**
+- **metric_events**: `id, kind (http|error|gauge|job), name (route template / logger / gauge), duration_ms, ok, value,
+  user_id, attrs json, created_at (indexed)`.
+- **messages** + `feedback` (+1 / -1) and `feedback_note`.
+
+Both observability tables are pruned to `METRICS_RETENTION_DAYS` (default 30).
+
 ## Migrations
-Alembic, in `backend/migrations/` (`0001` = Phase 1 baseline, `0002` = memory, `0003` = knowledge base, `0004` = agent and tools, `0005`/`0006` = personalisation). They run automatically
+Alembic, in `backend/migrations/` (`0001` = Phase 1 baseline, `0002` = memory, `0003` = knowledge base, `0004` = agent and tools, `0005`/`0006` = personalisation, `0007` = observability). They run automatically
 at start-up (`AUTO_MIGRATE=true`) or manually:
 ```powershell
 cd backend; .\.venv\Scripts\python.exe -m alembic upgrade head

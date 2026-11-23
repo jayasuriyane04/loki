@@ -83,6 +83,7 @@ class Settings(BaseSettings):
 
     # Agent / tools (Phase 5)
     tools_enabled: bool = True
+    desktop_tools: bool = True  # run_command / open_app / open_url / run_workflow act on this machine's desktop
     agent_max_steps: int = 12  # model calls per turn (each may call several tools); research needs ~8-10
     approval_timeout_s: float = 300.0  # unanswered approval requests count as "denied"
     searxng_url: str = "http://127.0.0.1:8888"
@@ -90,6 +91,12 @@ class Settings(BaseSettings):
     # Ollama's default context is 4096 tokens: too small once memories, documents and tool definitions are in the
     # prompt (it silently truncates). 12k fits the RTX 5060 alongside Whisper and the embedding model.
     ollama_num_ctx: int = 12288
+
+    # Observability (Phase 7): traces + metric events in LOKI's own database, shown on the Analytics page.
+    metrics_enabled: bool = True
+    metrics_retention_days: int = 30
+    # USD per 1M tokens, per model: {"gemini-2.5-flash": [0.30, 2.50]}. Unlisted models (local ones) have no cost.
+    model_prices: dict[str, tuple[float, float]] = {}
 
     # Context window budget for conversation history (characters, rough proxy for tokens)
     context_char_budget: int = 12000

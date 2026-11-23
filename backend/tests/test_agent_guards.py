@@ -62,3 +62,17 @@ def test_promises_are_detected():
     for text in ["I'll retrieve the open tasks now.", "Let me list your tasks to find the right id.",
                  "I will check the weather."]:
         assert PROMISED_ACTION.search(text)
+
+
+def test_false_incapability_and_mark_done_requests():
+    from app.agent.graph import NO_ACCESS, unfulfilled_requests
+
+    # Seen in the agent eval, 3 runs out of 3.
+    assert NO_ACCESS.search("I don't have access to your task list or a record of what you've done.")
+    assert NO_ACCESS.search("I can't see your calendar.")
+    assert not NO_ACCESS.search("I don't have access to the internet right now.")
+    assert not NO_ACCESS.search("You can see your tasks on the Planner page.")
+    offered = {"complete_task"}
+    assert unfulfilled_requests("I called the bank, mark that task as done.", [], offered) == ["complete_task"]
+    assert unfulfilled_requests("tick that off please", [], offered) == ["complete_task"]
+    assert unfulfilled_requests("mark it as done", [_ok("complete_task")], offered) == []

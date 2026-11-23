@@ -33,7 +33,7 @@ flowchart LR
   Worker[Background worker<br/>schedules · ingestion — Phase 4/6]
   Ollama[Ollama<br/>local models]
   Cloud[Gemini / other cloud LLMs]
-  Obs[Langfuse<br/>Phase 7]
+  Obs[Traces + metrics<br/>in Postgres · Analytics page]
 
   UI <--> Store
   Store <--> REST
@@ -98,7 +98,7 @@ changing the providers.
 | E | RAG | ingest → extract → clean → structure-aware chunking → metadata → embed → pgvector + Postgres FTS (hybrid, RRF) → rerank (cross-encoder) → cited context | 4 |
 | F | Personalisation | Validated preferences JSON (style, voice, proactive, quiet hours) + learned profile memories; style and a `<project>` briefing (detected by name or time reference) are injected into the system prompt | 6 ✅ |
 | G | Proactive | In-process `ProactiveScheduler`: fixed-interval jobs (reminders, deadlines, event heads-up, daily briefing, conversation summaries, watched folders, quiet-hours release), all gated by user preferences and a master switch; only summaries call the LLM | 6 ✅ |
-| H | Evaluation | Per-message latency/tokens already stored in Phase 1; Langfuse traces; offline eval sets for RAG/tools | 7 |
+| H | Evaluation | Built-in tracing (per-turn spans via a context variable, buffered writer, no content) + metric events; Analytics dashboard; offline suites for retrieval/answers, agent and voice (`backend/eval`, see EVALUATION.md) | 7 ✅ |
 
 ## 3. Trust boundaries (prompt-injection defence)
 
@@ -142,4 +142,4 @@ changing the providers.
 | ElevenLabs | High-quality TTS | Optional (local Piper/Kokoro alternative) | `ELEVENLABS_API_KEY` |
 | Web search (Tavily / Brave / SearXNG) | Research agent | Phase 5 | `SEARCH_API_KEY` |
 | Weather (Open-Meteo) | Weather tool | No key needed | — |
-| Langfuse | Observability | Optional, self-hostable | `LANGFUSE_*` |
+| Langfuse | Observability | Not used: tracing is built in (self-hosted Langfuse needs ClickHouse/Redis/MinIO; the cloud would receive conversation content) | — |

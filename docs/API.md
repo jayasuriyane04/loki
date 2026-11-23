@@ -179,5 +179,13 @@ WebSocket additions
 Conversation summaries include `project`. On connect, the server applies the account's saved voice settings;
 `voice_config` from the client still overrides them for that connection.
 
-## Planned
-- Phase 7: `/api/metrics`.
+## Observability — Phase 7 ✅
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/metrics/summary?days=1..90` | aggregates for the signed-in user's turns (`voice`, `responses`, `rag`, `memory`, `agent`) + system-wide (`system`: API latency by route, errors, sessions, ratings) + `daily` series + `evals` (latest offline report per suite). See docs/EVALUATION.md |
+| GET | `/api/metrics/traces?limit=` | recent traces: `{kind, status, duration_ms, first_token_ms, first_audio_ms, stt_ms, tokens, spans: [{name, start_ms, duration_ms, attrs}], attrs}`; no message content |
+| GET | `/api/metrics/evals/{file}` | one full report from `backend/eval/results/` (`404` for anything outside it) |
+| POST | `/api/messages/{id}/feedback` | `{rating: 1 \| -1 \| null, note?}` on the user's own assistant messages (`404` otherwise); messages now carry `feedback` |
+
+Every HTTP request (route template, status, duration) and every ERROR log line is recorded as a metric event;
+`/api/health` and `/api/metrics/*` are not. Data older than `METRICS_RETENTION_DAYS` (30) is deleted hourly.

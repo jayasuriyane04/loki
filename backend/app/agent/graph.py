@@ -24,6 +24,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 from langgraph.types import interrupt
 
+from app.observability.trace import event
 from app.llm.base import ChatMessage, StreamChunk, ToolCall
 from app.llm.router import LLMRouter, StreamStarted
 from app.tools.base import ToolContext, ToolError
@@ -81,6 +82,7 @@ class AgentContext:
     prior_ok: list[dict] = field(default_factory=list)  # successful tool steps from earlier turns of this chat
     user_request: str = ""  # this turn's user message (for the completion check)
     requests_checked: bool = False
+    access_checked: bool = False
 
 
 def to_dict(m: ChatMessage) -> dict:
@@ -118,7 +120,15 @@ _REQUESTS = [
     (re.compile(r"\bremind me\b(?!,?\s+(what|how|who|why|where|which|whether|if|of)\b)", re.I), "create_reminder"),
     (re.compile(r"\badd\b.{0,60}\b(to )?(my )?(task|to-?do)s?\b", re.I), "create_task"),
     (re.compile(r"\b(add|put|schedule)\b.{0,60}\b(calendar|event|meeting)\b", re.I), "create_event"),
+    (re.compile(r"\bmark\b.{0,60}\b(as )?(done|complete|completed|finished)\b|\b(tick|check) (it |that )?off\b", re.I),
+     "complete_task"),
 ]
+
+# A small model sometimes claims it can't see the user's data ("I don't have access to your task list") instead of
+# calling the list tool (agent eval: 3 of 3 runs of "I called the bank, mark that task as done").
+NO_ACCESS = re.compile(
+    r"\b(don't|do not|can't|cannot|am unable to|'m unable to|am not able to)\s+(have\s+)?(any\s+)?"
+    r"(access|see|view|check)\b.{0,40}\b(tasks?|to-?do|lists?|reminders?|notes?|calendar|events?|schedule)\b", re.I)
 
 
 def unfulfilled_requests(user_text: str, outcomes: list[Outcome], offered: set[str]) -> list[str]:
@@ -202,6 +212,7 @@ async def model_node(state: AgentState, runtime: Runtime[AgentContext]) -> dict:
                     looping = looping or sentences[key] >= 3
             if looping:
                 log.warning("model repeated itself; stopping this step", extra={"sentence": max(sentences, key=sentences.get)[:120]})
+                event("guard.repetition")
                 continue
             text.append(delta)
             ctx.has_text = True
@@ -214,6 +225,22 @@ async def model_node(state: AgentState, runtime: Runtime[AgentContext]) -> dict:
     if usage:
         await ctx.emit(StreamChunk(done=True, prompt_tokens=usage.prompt_tokens, completion_tokens=usage.completion_tokens))
     said = "".join(text)
+    offered = {t["function"]["name"] for t in tools or ()}
+    m = NO_ACCESS.search(said.replace("’", "'")) if not calls and tools and not final_step else None
+    if m and not ctx.access_checked:
+        # Telling the model it has the tools didn't help in the eval (it refused again), so make the read-only
+        # lookup on its behalf: a real, audited tool call shown to the user, whose result the model then uses.
+        ctx.access_checked = True
+        noun = m.group(5).lower()
+        name = ("list_events" if noun.startswith(("calendar", "event", "schedule"))
+                else "list_reminders" if noun.startswith("reminder") else "list_tasks")
+        if name in offered:
+            calls = [ToolCall(f"guard_{steps}_{name}", name, {})]
+            note = "\n\n(Correction: I can see your list. Checking it now.)\n\n"
+            await ctx.emit(StreamChunk(delta=note))
+            ctx.tail = note[-4:]
+            event("guard.no_access", tool=name)
+            log.warning("model said it couldn't see the user's data; looking it up", extra={"tool": name})
     msg = ChatMessage("assistant", said, tuple(calls))
     messages = [*state["messages"], to_dict(msg)]
     retry = False
@@ -224,6 +251,7 @@ async def model_node(state: AgentState, runtime: Runtime[AgentContext]) -> dict:
                 "had done after the last tool result was NOT actually done. Ask me to finish it.)")
         await ctx.emit(StreamChunk(delta=note))
         log.warning("unbacked claim on the final step", extra={"text": said[-200:]})
+        event("guard.correction", reason="final_step")
     # Only a promise at the end of the reply counts ("…let me know" or a plan followed by an answer is fine).
     promised = PROMISED_ACTION.search(said[-300:])
     missing = unfulfilled_requests(ctx.user_request, ctx.outcomes, {t["function"]["name"] for t in ctx.tools})
@@ -239,6 +267,7 @@ async def model_node(state: AgentState, runtime: Runtime[AgentContext]) -> dict:
                              "something") + " without calling a tool, so it was NOT done.")
         if problems:
             retry = True
+            event("guard.retry", missing=missing, claimed=bool(claimed), promised=bool(promised))
             log.warning("agent turn incomplete; sending the model back",
                         extra={"missing": missing, "claimed": bool(claimed), "promised": bool(promised)})
             if claimed:
@@ -254,6 +283,7 @@ async def model_node(state: AgentState, runtime: Runtime[AgentContext]) -> dict:
             note = f"\n\n(Correction: {undone} was NOT actually done. Ask me again and I'll do it.)"
             await ctx.emit(StreamChunk(delta=note))
             log.warning("unbacked claim after retry; correction shown", extra={"missing": missing})
+            event("guard.correction", reason="after_retry")
     return {"messages": messages, "steps": steps, "retry": retry,
             "pending": [{"id": c.id, "name": c.name, "arguments": c.arguments} for c in calls]}
 

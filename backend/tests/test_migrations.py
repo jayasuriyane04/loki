@@ -9,7 +9,7 @@ def test_fresh_database_upgrades_to_head(tmp_path):
     con = sqlite3.connect(db)
     tables = {r[0] for r in con.execute("select name from sqlite_master where type='table'")}
     assert {"users", "sessions", "conversations", "messages", "memories", "user_settings"} <= tables
-    assert con.execute("select version_num from alembic_version").fetchone() == ("0006",)
+    assert con.execute("select version_num from alembic_version").fetchone() == ("0007",)
 
 
 def test_pre_migration_database_is_stamped_and_upgraded_without_data_loss(tmp_path):
@@ -19,6 +19,10 @@ def test_pre_migration_database_is_stamped_and_upgraded_without_data_loss(tmp_pa
     migrate.upgrade(url)
     con = sqlite3.connect(db)
     con.execute("drop table projects")
+    con.execute("drop table traces")
+    con.execute("drop table metric_events")
+    con.execute("alter table messages drop column feedback")
+    con.execute("alter table messages drop column feedback_note")
     for t in ("tool_executions", "notifications", "events", "notes", "reminders", "tasks"):
         con.execute(f"drop table {t}")
     con.execute("drop table chunks")
@@ -42,6 +46,6 @@ def test_pre_migration_database_is_stamped_and_upgraded_without_data_loss(tmp_pa
     migrate.upgrade(url)
 
     con = sqlite3.connect(db)
-    assert con.execute("select version_num from alembic_version").fetchone() == ("0006",)
+    assert con.execute("select version_num from alembic_version").fetchone() == ("0007",)
     assert con.execute("select email from users").fetchall() == [("a@example.com",)]
     assert "summary" in [r[1] for r in con.execute("pragma table_info(conversations)")]

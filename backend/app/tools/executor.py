@@ -10,6 +10,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.db.models import ToolExecution
 from app.llm.base import ToolCall
+from app.observability.trace import span
 from app.tools.base import Tool, ToolContext, ToolError
 from app.tools.registry import REGISTRY
 
@@ -65,6 +66,13 @@ def describe(p: Prepared) -> str:
 
 
 async def execute(p: Prepared, ctx: ToolContext, *, approved: bool | None) -> Outcome:
+    async with span(f"tool:{p.call.name}") as sp:
+        out = await _execute(p, ctx, approved=approved)
+        sp["status"] = out.status
+    return out
+
+
+async def _execute(p: Prepared, ctx: ToolContext, *, approved: bool | None) -> Outcome:
     start = time.perf_counter()
     tool = p.tool
     permission = tool.permission if tool else "read"

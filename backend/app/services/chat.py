@@ -21,6 +21,7 @@ from app.llm.base import ChatMessage, LLMError, StreamChunk, ToolCall
 from app.llm.router import LLMRouter, StreamStarted
 from app.memory import store
 from app.memory.service import MemoryService
+from app.observability.trace import current_trace, span
 from app.personal.preferences import load as load_preferences
 from app.personal.preferences import style_block
 from app.personal.projects import briefing as project_briefing
@@ -212,7 +213,9 @@ class ChatService:
         recall = None
         if memory_on:
             await send({"type": "state", "state": "retrieving"})
-            recall = await self.memory.recall(db, user, content)  # type: ignore[union-attr]
+            async with span("memory_recall") as sp:
+                recall = await self.memory.recall(db, user, content)  # type: ignore[union-attr]
+                sp["hits"] = len(recall.used)
             if recall.used:
                 await send(
                     {
@@ -226,7 +229,9 @@ class ChatService:
         if self.knowledge is not None:
             if not memory_on:
                 await send({"type": "state", "state": "retrieving"})
-            docs = await self.knowledge.retrieve(db, user.id, content)
+            async with span("retrieval") as sp:
+                docs = await self.knowledge.retrieve(db, user.id, content)
+                sp["hits"] = len(docs.sources)
         user_settings = await db.get(UserSettings, user.id)
         tz = user_settings.timezone if user_settings else "UTC"
         prefs = user_settings.tool_prefs if user_settings else None
@@ -235,6 +240,9 @@ class ChatService:
         # Project context: named in the message, referred to by time ("the project we discussed yesterday"),
         # or already linked to this conversation.
         project = await resolve_project(db, user.id, content, conv)
+        if trace := current_trace():
+            trace.conversation_id = conv.id
+            trace.attrs.update(temporary=conv.is_temporary, memory_on=memory_on, project=bool(project))
         project_block = None
         if project:
             if conv.project != project:
@@ -267,6 +275,7 @@ class ChatService:
         started = time.perf_counter()
         began = False
         reasoning_announced = False
+        model_steps = 0
         agent_ctx: AgentContext | None = None
         if use_tools:
             agent_ctx, stream = self._agent_stream(context, user, conv, prefs, tz, send, approvals)  # type: ignore[arg-type]
@@ -279,6 +288,8 @@ class ChatService:
                 if isinstance(item, StreamStarted):
                     began = True
                     assistant.provider, assistant.model = item.provider, item.model
+                    if (trace := current_trace()) and item.fell_back:
+                        trace.attrs["fell_back"] = True
                     await send(
                         {
                             "type": "assistant_start",
@@ -303,9 +314,10 @@ class ChatService:
                     if on_delta:
                         on_delta(str(assistant.id), chunk.delta)
                     await send({"type": "token", "message_id": str(assistant.id), "delta": chunk.delta})
-                if chunk.done:
-                    assistant.prompt_tokens = chunk.prompt_tokens
-                    assistant.completion_tokens = chunk.completion_tokens
+                if chunk.done:  # agent turns have one per model step: count them all
+                    assistant.prompt_tokens = (assistant.prompt_tokens or 0) + (chunk.prompt_tokens or 0)
+                    assistant.completion_tokens = (assistant.completion_tokens or 0) + (chunk.completion_tokens or 0)
+                    model_steps += 1
             assistant.status = "complete" if parts else "error"
         except asyncio.CancelledError:
             assistant.status = "interrupted"
@@ -320,6 +332,8 @@ class ChatService:
             await send({"type": "error", "code": "llm_stream_failed", "message": str(e)})
             return
         await self._finish(db, conv, assistant, parts, started, send, began, sources, agent_ctx)
+        if trace := current_trace():
+            trace.attrs["model_steps"] = model_steps
         if not parts:
             await send(
                 {
@@ -349,6 +363,7 @@ class ChatService:
         assistant.latency_ms = _ms_since(started)
         if agent_ctx and agent_ctx.outcomes:
             assistant.tool_steps = [o.step() for o in agent_ctx.outcomes]
+        invented: list[int] = []
         if sources:
             # Only numbers that match a passage the model was actually shown count as citations.
             assistant.citations, invented = attach_citations([dict(s) for s in sources], assistant.content)
@@ -357,6 +372,7 @@ class ChatService:
         db.add(assistant)
         conv.updated_at = datetime.now(UTC)
         await db.commit()
+        _trace_finish(assistant, agent_ctx, len(invented), started)
         log.info(
             "assistant turn finished",
             extra={
@@ -373,6 +389,29 @@ class ChatService:
             await send({"type": "assistant_end", "message": _dump(MessageOut, assistant)})
         except Exception:  # client may already be gone (e.g. cancel on disconnect)
             pass
+
+
+def _trace_finish(assistant: Message, agent_ctx: AgentContext | None, invented: int = 0, started: float | None = None) -> None:
+    """Copy what the dashboard needs from the finished reply onto the turn's trace (no content)."""
+    trace = current_trace()
+    if trace is None:
+        return
+    trace.message_id = assistant.id
+    if started is not None and assistant.latency_ms is not None:
+        # The whole model phase (all agent steps, tool calls included), so the waterfall accounts for the time.
+        trace.add_span("model", started, assistant.latency_ms, first_word_ms=assistant.first_token_ms)
+    trace.provider, trace.model = assistant.provider, assistant.model
+    trace.first_token_ms = assistant.first_token_ms
+    trace.prompt_tokens, trace.completion_tokens = assistant.prompt_tokens, assistant.completion_tokens
+    if assistant.status != "complete":
+        trace.status = "interrupted" if assistant.status == "interrupted" else "error"
+    if assistant.citations is not None:
+        trace.attrs["citations"] = {"shown": len(assistant.citations),
+                                    "cited": sum(1 for c in assistant.citations if c.get("cited"))}
+        trace.attrs["invented_citations"] = invented  # [n] markers with no matching passage
+    if agent_ctx is not None:
+        trace.attrs["tools"] = [{"tool": o.call.name, "status": o.status, "ms": o.duration_ms,
+                                 "approved": o.approved} for o in agent_ctx.outcomes]
 
 
 def _ms_since(t: float) -> int:

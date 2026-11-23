@@ -120,6 +120,11 @@ class Speaker:
         self._message_id: str | None = None
         self._worker = asyncio.create_task(self._run())
         self._failed = False
+        self.chunks = 0
+
+    @property
+    def failed(self) -> bool:
+        return self._failed
 
     def feed(self, message_id: str, delta: str) -> None:
         self._message_id = message_id
@@ -172,6 +177,7 @@ class Speaker:
                 audio.pcm16,
             )
             seq += 1
+            self.chunks = seq
 
 
 __all__ = ["VoiceManager", "Speaker", "VoiceError"]

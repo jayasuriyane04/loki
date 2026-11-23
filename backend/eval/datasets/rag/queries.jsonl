@@ -1,0 +1,38 @@
+{"id": "late-fee-rate", "type": "factual", "query": "What is the late fee for overdue Meridian invoices?", "relevant": ["late fee of 2%"], "facts": ["2 ?%"]}
+{"id": "grace-period", "type": "factual", "query": "How long is the grace period before late fees start?", "relevant": ["grace period of 5 days"], "facts": ["5 days|five days"]}
+{"id": "late-fee-cap", "type": "factual", "query": "Is there a maximum on late fees?", "relevant": ["capped at 25%"], "facts": ["25 ?%"]}
+{"id": "enterprise-exempt", "type": "paraphrase", "query": "Do big business customers have to pay penalties for paying late?", "relevant": ["exempt from late fees"], "facts": ["enterprise", "exempt|don't|do not|no"]}
+{"id": "due-days", "type": "factual", "query": "When are invoices due?", "relevant": ["due 30 days after"], "facts": ["30 days"]}
+{"id": "reconcile-time", "type": "factual", "query": "When does payment reconciliation run?", "relevant": ["02:00 utc"], "facts": ["02:00|2(:00)? ?am|2 o'clock"]}
+{"id": "db", "type": "factual", "query": "Which database does Meridian use?", "relevant": ["postgresql 15"], "facts": ["postgres"]}
+{"id": "workers", "type": "factual", "query": "How many background worker processes are there?", "relevant": ["three worker processes"], "facts": ["three|3"]}
+{"id": "rounding", "type": "paraphrase", "query": "How are fractions of a cent handled when converting money?", "relevant": ["banker's rounding", "roundhalfeven"], "facts": ["half (to )?even|banker"]}
+{"id": "jpy", "type": "factual", "query": "How are Japanese yen amounts stored?", "relevant": ["zero-decimal currencies such as jpy", "zero_decimal = new set"], "facts": ["without|no (factor|decimal)|zero-decimal|as is"]}
+{"id": "retention-invoices", "type": "factual", "query": "How long do we keep invoices?", "relevant": ["kept for 7 years"], "facts": ["7 years|seven years"]}
+{"id": "retention-webhooks", "type": "factual", "query": "When are webhook delivery logs deleted?", "relevant": ["deleted after 90"], "facts": ["90 days"]}
+{"id": "anonymise", "type": "paraphrase", "query": "What happens to a customer's personal information after they close their account?", "relevant": ["anonymised 30 days after cancellation"], "facts": ["anonymi[sz]", "30 days"]}
+{"id": "oncall-rotation", "type": "factual", "query": "When does the on-call rotation change?", "relevant": ["every monday at 10:00"], "facts": ["monday", "10:00|10 ?am"]}
+{"id": "page-ack", "type": "paraphrase", "query": "How quickly do I have to respond when I get paged?", "relevant": ["acknowledge a page within 15 minutes"], "facts": ["15 minutes"]}
+{"id": "sev1", "type": "factual", "query": "What is required during a SEV1 incident?", "relevant": ["status page update within 30 minutes"], "facts": ["status page", "30 minutes"]}
+{"id": "prod-deploy", "type": "factual", "query": "How do production deployments work?", "relevant": ["tagged releases"], "facts": ["tag"]}
+{"id": "deploy-days", "type": "paraphrase", "query": "Can I ship to production on a Friday?", "relevant": ["monday and thursday"], "facts": ["no|not|only|monday", "thursday"]}
+{"id": "migrations", "type": "factual", "query": "What are the rules for database migrations?", "relevant": ["backward compatible"], "facts": ["backward[- ]compatible"]}
+{"id": "rollback-cmd", "type": "factual", "query": "What command rolls back a bad release?", "relevant": ["meridian-cli rollback"], "facts": ["meridian-cli rollback"]}
+{"id": "secrets", "type": "factual", "query": "Where are secrets stored?", "relevant": ["secret/meridian"], "facts": ["vault"]}
+{"id": "vault-expiry", "type": "factual", "query": "How long are Vault access tokens valid?", "relevant": ["expire after 8 hours"], "facts": ["8 hours|eight hours"]}
+{"id": "idempotency", "type": "factual", "query": "How do I avoid creating duplicate invoices when retrying a request?", "relevant": ["idempotency-key"], "facts": ["idempotency"]}
+{"id": "rate-limit", "type": "factual", "query": "What is the API rate limit?", "relevant": ["600 requests per minute"], "facts": ["600"]}
+{"id": "webhook-retries", "type": "factual", "query": "How many times are failed webhooks retried?", "relevant": ["retried 8 times"], "facts": ["8|eight"]}
+{"id": "webhook-verify", "type": "paraphrase", "query": "How can I check that a webhook really came from Meridian?", "relevant": ["x-meridian-signature"], "facts": ["hmac|signature"]}
+{"id": "code-latefee", "type": "code", "query": "Which function calculates the late fee and what does it return?", "relevant": ["def compute_late_fee"], "facts": ["compute_late_fee"]}
+{"id": "code-minor", "type": "code", "query": "Where is toMinorUnits defined?", "relevant": ["export function tominorunits"], "facts": ["currency\\.ts|currency"]}
+{"id": "pdf-renderer", "type": "factual", "query": "What did the team decide about the PDF renderer?", "relevant": ["moves from wkhtmltopdf to typst"], "facts": ["typst"]}
+{"id": "reminder-timing", "type": "factual", "query": "When will payment reminders be sent from now on?", "relevant": ["3 days before the due date"], "facts": ["3 days|three days"]}
+{"id": "password-rotation", "type": "pdf", "query": "How often do admin passwords rotate?", "relevant": ["rotate every 90 days"], "facts": ["90 days"]}
+{"id": "mfa", "type": "pdf", "query": "Is multi-factor authentication required?", "relevant": ["multi-factor authentication is required"], "facts": ["production|yes|required"]}
+{"id": "conv-buried", "type": "conversational", "query": "Okay, back to the Meridian stuff from earlier. Remind me how many requests per minute the API allows?", "relevant": ["600 requests per minute"], "facts": ["600"]}
+{"id": "conv-filler", "type": "conversational", "query": "Hey, quick one before my meeting. Can you tell me who owns the Typst migration?", "relevant": ["priya owns the migration"], "facts": ["priya"]}
+{"id": "open-question", "type": "factual", "query": "Is multi-currency invoicing decided yet?", "relevant": ["multi-currency invoices in q1 2027"], "facts": ["not|open|waiting|undecided|finance"]}
+{"id": "none-mobile", "type": "unanswerable", "query": "When will the Meridian mobile app be released?", "relevant": [], "facts": []}
+{"id": "none-ceo", "type": "unanswerable", "query": "Who is the CEO of the company?", "relevant": [], "facts": []}
+{"id": "none-kubernetes", "type": "unanswerable", "query": "How many Kubernetes pods does Meridian run in production?", "relevant": [], "facts": []}

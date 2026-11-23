@@ -1,14 +1,22 @@
-# LOKI's data services. Start the database with:  docker compose up -d postgres
-# backend/.env: DATABASE_URL=postgresql+asyncpg://loki:loki@127.0.0.1:5432/loki
-# (use 127.0.0.1, not localhost: on Windows, localhost tries IPv6 first and every new connection stalls)
-# Redis is defined for later phases (task queue) and isn't used yet.
+# LOKI on Docker.
+#
+# Data services only (for running the backend/frontend from source):
+#   docker compose up -d postgres searxng
+#   backend/.env: DATABASE_URL=postgresql+asyncpg://loki:loki@127.0.0.1:5432/loki
+#   (use 127.0.0.1, not localhost: on Windows, localhost tries IPv6 first and every new connection stalls)
+#
+# The whole app in containers (profile "app"): backend on http://localhost:8100, UI on http://localhost:3100.
+#   docker compose --profile app up -d --build
+# Ollama stays on the host (scripts/start-ollama.ps1, port 11435) so it keeps the GPU it is tuned for; the backend
+# container reaches it through host.docker.internal and uses the NVIDIA GPU itself for speech recognition.
+# Run ONE backend at a time against the same database (source or container), or reminders may be sent twice.
 services:
   postgres:
     image: pgvector/pgvector:pg16
     restart: unless-stopped  # comes back with Docker Desktop after a reboot
     environment:
       POSTGRES_USER: loki
-      POSTGRES_PASSWORD: loki  # local development only
+      POSTGRES_PASSWORD: loki  # local only: the port is bound to 127.0.0.1
       POSTGRES_DB: loki
     ports: ["127.0.0.1:5432:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
@@ -26,9 +34,61 @@ services:
     volumes:
       - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
 
-  redis:
+  backend:
+    profiles: [app]
+    build: ./backend
+    image: loki-backend
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      searxng: { condition: service_started }
+    env_file:
+      - path: ./backend/.env  # model choice, optional cloud keys; the values below override it
+        required: false
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://loki:loki@postgres:5432/loki
+      OLLAMA_BASE_URL: http://host.docker.internal:11435
+      SEARXNG_URL: http://searxng:8080
+      CORS_ORIGINS: http://localhost:3100,http://127.0.0.1:3100
+      UPLOAD_DIR: /data/uploads
+      TTS_MODEL_DIR: /models/kokoro
+      RERANK_MODEL_DIR: /models/reranker/mxbai-rerank-xsmall-v1
+      STT_DEVICE: auto        # CUDA when the GPU is visible, CPU otherwise
+      HF_HUB_OFFLINE: "1"     # use the Whisper model already in your Hugging Face cache; never download
+      DESKTOP_TOOLS: "false"  # opening apps / running commands would act inside the container, not on your PC
+    ports: ["127.0.0.1:8100:8000"]
+    volumes:
+      - ./backend/models:/models:ro
+      - ${USERPROFILE:-~}/.cache/huggingface:/home/loki/.cache/huggingface:ro
+      - ./backend/eval/results:/app/eval/results:ro
+      - uploads:/data/uploads
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  frontend:
+    profiles: [app]
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8100
+    image: loki-frontend
+    restart: unless-stopped
+    depends_on:
+      backend: { condition: service_healthy }
+    ports: ["127.0.0.1:3100:3000"]
+
+  redis:  # not used yet (LOKI's background work runs in-process); kept for a future worker
+    profiles: [redis]
     image: redis:7-alpine
     ports: ["127.0.0.1:6379:6379"]
 
 volumes:
   pgdata:
+  uploads:

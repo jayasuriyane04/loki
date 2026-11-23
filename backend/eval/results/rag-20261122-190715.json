@@ -1,0 +1,2946 @@
+{
+  "suite": "rag",
+  "ran_at": "2026-11-22T19:07:15.388274+00:00",
+  "config": {
+    "embedding_model": "qwen3-embedding:0.6b",
+    "reranker": "mxbai-rerank-xsmall-v1",
+    "reranker_state": "ready",
+    "rerank_threshold": 0.25,
+    "chunks": 20,
+    "candidates": 30,
+    "llm": "qwen3:4b-instruct",
+    "judge": true
+  },
+  "headline": {
+    "queries": 38,
+    "answerable": 35,
+    "k": 5,
+    "recall@5": 0.971,
+    "precision@5": 0.2,
+    "ndcg@5": 0.945,
+    "mrr": 0.971,
+    "unanswerable_with_results": "2/3",
+    "answer_correct": 0.971,
+    "citation_precision": 0.939,
+    "citation_validity": 0.971,
+    "context_relevance": 0.714,
+    "faithfulness": 0.912,
+    "abstained_when_unanswerable": 1.0,
+    "p50_first_token_s": 2.064
+  },
+  "details": {
+    "retrieval_by_mode": {
+      "vector": {
+        "p@1": 0.8,
+        "p@3": 0.362,
+        "p@5": 0.223,
+        "recall@1": 0.8,
+        "recall@3": 0.971,
+        "recall@5": 1.0,
+        "ndcg@5": 0.917,
+        "mrr": 0.888,
+        "p50_ms": 37.516,
+        "unanswerable_with_results": 3
+      },
+      "keyword": {
+        "p@1": 0.714,
+        "p@3": 0.324,
+        "p@5": 0.211,
+        "recall@1": 0.714,
+        "recall@3": 0.914,
+        "recall@5": 0.971,
+        "ndcg@5": 0.855,
+        "mrr": 0.822,
+        "p50_ms": 39.674,
+        "unanswerable_with_results": 2
+      },
+      "hybrid": {
+        "p@1": 0.857,
+        "p@3": 0.362,
+        "p@5": 0.223,
+        "recall@1": 0.857,
+        "recall@3": 0.971,
+        "recall@5": 1.0,
+        "ndcg@5": 0.934,
+        "mrr": 0.915,
+        "p50_ms": 37.805,
+        "unanswerable_with_results": 3
+      },
+      "hybrid+rerank": {
+        "p@1": 0.971,
+        "p@3": 0.333,
+        "p@5": 0.2,
+        "recall@1": 0.971,
+        "recall@3": 0.971,
+        "recall@5": 0.971,
+        "ndcg@5": 0.945,
+        "mrr": 0.971,
+        "p50_ms": 586.902,
+        "unanswerable_with_results": 2
+      },
+      "production": {
+        "p@1": 0.971,
+        "p@3": 0.333,
+        "p@5": 0.2,
+        "recall@1": 0.971,
+        "recall@3": 0.971,
+        "recall@5": 0.971,
+        "ndcg@5": 0.945,
+        "mrr": 0.971,
+        "p50_ms": 597.381,
+        "unanswerable_with_results": 2
+      }
+    },
+    "production_by_query_type": {
+      "code": {
+        "n": 2,
+        "recall@5": 1.0,
+        "mrr": 1.0
+      },
+      "conversational": {
+        "n": 2,
+        "recall@5": 1.0,
+        "mrr": 1.0
+      },
+      "factual": {
+        "n": 23,
+        "recall@5": 1.0,
+        "mrr": 1.0
+      },
+      "paraphrase": {
+        "n": 6,
+        "recall@5": 0.833,
+        "mrr": 0.833
+      },
+      "pdf": {
+        "n": 2,
+        "recall@5": 1.0,
+        "mrr": 1.0
+      }
+    },
+    "queries": [
+      {
+        "id": "late-fee-rate",
+        "type": "factual",
+        "query": "What is the late fee for overdue Meridian invoices?",
+        "modes": {
+          "vector": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          }
+        }
+      },
+      {
+        "id": "grace-period",
+        "type": "factual",
+        "query": "How long is the grace period before late fees start?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 3
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          }
+        }
+      },
+      {
+        "id": "late-fee-cap",
+        "type": "factual",
+        "query": "Is there a maximum on late fees?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.6666666666666666,
+            "recall@3": 1.0,
+            "p@5": 0.4,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.6666666666666666,
+            "recall@3": 1.0,
+            "p@5": 0.4,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.6666666666666666,
+            "recall@3": 1.0,
+            "p@5": 0.4,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.6666666666666666,
+            "recall@3": 1.0,
+            "p@5": 0.4,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.6666666666666666,
+            "recall@3": 1.0,
+            "p@5": 0.4,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          }
+        }
+      },
+      {
+        "id": "enterprise-exempt",
+        "type": "paraphrase",
+        "query": "Do big business customers have to pay penalties for paying late?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 4
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "due-days",
+        "type": "factual",
+        "query": "When are invoices due?",
+        "modes": {
+          "vector": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          }
+        }
+      },
+      {
+        "id": "reconcile-time",
+        "type": "factual",
+        "query": "When does payment reconciliation run?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          }
+        }
+      },
+      {
+        "id": "db",
+        "type": "factual",
+        "query": "Which database does Meridian use?",
+        "modes": {
+          "vector": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.0,
+            "recall@3": 0.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.43067655807339306,
+            "mrr": 0.25,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.0,
+            "recall@3": 0.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.38685280723454163,
+            "mrr": 0.2,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.0,
+            "recall@3": 0.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.38685280723454163,
+            "mrr": 0.2,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          }
+        }
+      },
+      {
+        "id": "workers",
+        "type": "factual",
+        "query": "How many background worker processes are there?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "rounding",
+        "type": "paraphrase",
+        "query": "How are fractions of a cent handled when converting money?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 1.0,
+            "recall@3": 1.0,
+            "p@5": 0.6,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.6666666666666666,
+            "recall@3": 1.0,
+            "p@5": 0.4,
+            "recall@5": 1.0,
+            "ndcg@5": 0.7653606369886217,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 1.0,
+            "recall@3": 1.0,
+            "p@5": 0.6,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.46927872602275644,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.46927872602275644,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "jpy",
+        "type": "factual",
+        "query": "How are Japanese yen amounts stored?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.6666666666666666,
+            "recall@3": 1.0,
+            "p@5": 0.4,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.4,
+            "recall@5": 1.0,
+            "ndcg@5": 0.5437713091520254,
+            "mrr": 0.3333333333333333,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.6666666666666666,
+            "recall@3": 1.0,
+            "p@5": 0.4,
+            "recall@5": 1.0,
+            "ndcg@5": 0.9197207891481876,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6131471927654584,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6131471927654584,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "retention-invoices",
+        "type": "factual",
+        "query": "How long do we keep invoices?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.0,
+            "recall@3": 0.0,
+            "p@5": 0.0,
+            "recall@5": 0.0,
+            "ndcg@5": 0.0,
+            "mrr": 0.0,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.5,
+            "mrr": 0.3333333333333333,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 3
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 3
+          }
+        }
+      },
+      {
+        "id": "retention-webhooks",
+        "type": "factual",
+        "query": "When are webhook delivery logs deleted?",
+        "modes": {
+          "vector": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 2
+          },
+          "hybrid": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "anonymise",
+        "type": "paraphrase",
+        "query": "What happens to a customer's personal information after they close their account?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "oncall-rotation",
+        "type": "factual",
+        "query": "When does the on-call rotation change?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "page-ack",
+        "type": "paraphrase",
+        "query": "How quickly do I have to respond when I get paged?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.0,
+            "recall@3": 0.0,
+            "p@5": 0.0,
+            "recall@5": 0.0,
+            "ndcg@5": 0.0,
+            "mrr": 0.0,
+            "returned": 0
+          },
+          "production": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.0,
+            "recall@3": 0.0,
+            "p@5": 0.0,
+            "recall@5": 0.0,
+            "ndcg@5": 0.0,
+            "mrr": 0.0,
+            "returned": 0
+          }
+        }
+      },
+      {
+        "id": "sev1",
+        "type": "factual",
+        "query": "What is required during a SEV1 incident?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 3
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "prod-deploy",
+        "type": "factual",
+        "query": "How do production deployments work?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "deploy-days",
+        "type": "paraphrase",
+        "query": "Can I ship to production on a Friday?",
+        "modes": {
+          "vector": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.5,
+            "mrr": 0.3333333333333333,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "migrations",
+        "type": "factual",
+        "query": "What are the rules for database migrations?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "rollback-cmd",
+        "type": "factual",
+        "query": "What command rolls back a bad release?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 3
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "secrets",
+        "type": "factual",
+        "query": "Where are secrets stored?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 3
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "vault-expiry",
+        "type": "factual",
+        "query": "How long are Vault access tokens valid?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "idempotency",
+        "type": "factual",
+        "query": "How do I avoid creating duplicate invoices when retrying a request?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "rate-limit",
+        "type": "factual",
+        "query": "What is the API rate limit?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "webhook-retries",
+        "type": "factual",
+        "query": "How many times are failed webhooks retried?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 4
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "webhook-verify",
+        "type": "paraphrase",
+        "query": "How can I check that a webhook really came from Meridian?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "code-latefee",
+        "type": "code",
+        "query": "Which function calculates the late fee and what does it return?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "code-minor",
+        "type": "code",
+        "query": "Where is toMinorUnits defined?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "pdf-renderer",
+        "type": "factual",
+        "query": "What did the team decide about the PDF renderer?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 3
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "reminder-timing",
+        "type": "factual",
+        "query": "When will payment reminders be sent from now on?",
+        "modes": {
+          "vector": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 3
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          }
+        }
+      },
+      {
+        "id": "password-rotation",
+        "type": "pdf",
+        "query": "How often do admin passwords rotate?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 2
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "mfa",
+        "type": "pdf",
+        "query": "Is multi-factor authentication required?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 4
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "conv-buried",
+        "type": "conversational",
+        "query": "Okay, back to the Meridian stuff from earlier. Remind me how many requests per minute the API allows?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "conv-filler",
+        "type": "conversational",
+        "query": "Hey, quick one before my meeting. Can you tell me who owns the Typst migration?",
+        "modes": {
+          "vector": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "open-question",
+        "type": "factual",
+        "query": "Is multi-currency invoicing decided yet?",
+        "modes": {
+          "vector": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "keyword": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.0,
+            "recall@3": 0.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.43067655807339306,
+            "mrr": 0.25,
+            "returned": 5
+          },
+          "hybrid": {
+            "p@1": 0.0,
+            "recall@1": 0.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 0.6309297535714575,
+            "mrr": 0.5,
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          },
+          "production": {
+            "p@1": 1.0,
+            "recall@1": 1.0,
+            "p@3": 0.3333333333333333,
+            "recall@3": 1.0,
+            "p@5": 0.2,
+            "recall@5": 1.0,
+            "ndcg@5": 1.0,
+            "mrr": 1.0,
+            "returned": 1
+          }
+        }
+      },
+      {
+        "id": "none-mobile",
+        "type": "unanswerable",
+        "query": "When will the Meridian mobile app be released?",
+        "modes": {
+          "vector": {
+            "returned": 5
+          },
+          "keyword": {
+            "returned": 5
+          },
+          "hybrid": {
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "returned": 3
+          },
+          "production": {
+            "returned": 3
+          }
+        }
+      },
+      {
+        "id": "none-ceo",
+        "type": "unanswerable",
+        "query": "Who is the CEO of the company?",
+        "modes": {
+          "vector": {
+            "returned": 5
+          },
+          "keyword": {
+            "returned": 0
+          },
+          "hybrid": {
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "returned": 0
+          },
+          "production": {
+            "returned": 0
+          }
+        }
+      },
+      {
+        "id": "none-kubernetes",
+        "type": "unanswerable",
+        "query": "How many Kubernetes pods does Meridian run in production?",
+        "modes": {
+          "vector": {
+            "returned": 5
+          },
+          "keyword": {
+            "returned": 5
+          },
+          "hybrid": {
+            "returned": 5
+          },
+          "hybrid+rerank": {
+            "returned": 1
+          },
+          "production": {
+            "returned": 1
+          }
+        }
+      }
+    ],
+    "documents_failed": [],
+    "answers": {
+      "summary": {
+        "answer_correct": 0.971,
+        "citation_precision": 0.939,
+        "citation_validity": 0.971,
+        "context_relevance": 0.714,
+        "faithfulness": 0.912,
+        "abstained_when_unanswerable": 1.0,
+        "answers_with_citation": 0.886,
+        "p50_first_token_s": 2.064,
+        "p50_total_s": 2.928
+      },
+      "rows": [
+        {
+          "id": "late-fee-rate",
+          "type": "factual",
+          "reply": "Late fees for overdue Meridian invoices are calculated as follows:\n\n- A grace period of 5 days is applied. After this period, a late fee of 2% of the outstanding amount is charged for each full month that the invoice remains overdue.\n- The late fee is capped at 25% of the original invoice amount.\n- Customers on the Enterprise plan are exempt from late fees entirely.\n\nThis is defined in the billing rules [1] and implemented in the `late_fees.py` file [2]. \n\nFor example:\n- If an invoice is overdue by 10 days (after the 5-day grace period), no fee applies (less than a full month).\n- If overdue by 40 days (i.e., 1 month and 10 days), the fee is 2% for the first month, and capped at 25% of the original amount.\n\nThe calculation is implemented in the `compute_late_fee` function in `late_fees.py`.",
+          "first_token_s": 3.276,
+          "total_s": 6.245,
+          "passages_shown": 2,
+          "passages_cited": 2,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "grace-period",
+          "type": "factual",
+          "reply": "The grace period before late fees starts is 5 days. This is stated in the billing rules document [1] and confirmed by the late_fees.py code [2][3]. After this period, a late fee of 2% per started month is applied, capped at 25% of the original amount.",
+          "first_token_s": 2.487,
+          "total_s": 3.472,
+          "passages_shown": 2,
+          "passages_cited": 2,
+          "invented_markers": 1,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": [
+            "[3]"
+          ]
+        },
+        {
+          "id": "late-fee-cap",
+          "type": "factual",
+          "reply": "Yes, there is a maximum on late fees. According to the billing rules, late fees are capped at 25% of the original invoice amount. This cap applies regardless of how many months the invoice is overdue, ensuring the total fee does not exceed 25% of the outstanding balance [1]. \n\nAdditionally, customers on the Enterprise plan are exempt from late fees entirely.",
+          "first_token_s": 0.759,
+          "total_s": 1.942,
+          "passages_shown": 2,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 2,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "enterprise-exempt",
+          "type": "paraphrase",
+          "reply": "According to the billing rules, customers on the Enterprise plan are exempt from late fees. For all other customers, late fees apply: a 2% late fee is charged per started month after a 5-day grace period, with a cap of 25% of the original amount. \n\nSo, big business customers\u2014unless they are on the Enterprise plan\u2014would generally be subject to these penalties if they pay late. If they are on the Enterprise plan, they are exempt. \n\nLet me know if you'd like to verify whether a specific business customer is on the Enterprise plan.",
+          "first_token_s": 1.95,
+          "total_s": 3.748,
+          "passages_shown": 1,
+          "passages_cited": 0,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 0,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "due-days",
+          "type": "factual",
+          "reply": "Invoices are due 30 days after they are issued. After a 5-day grace period, an overdue invoice accrues a late fee of 2% of the outstanding amount for every completed month, capped at 25% of the original amount. Customers on the Enterprise plan are exempt from late fees [1].",
+          "first_token_s": 2.046,
+          "total_s": 3.069,
+          "passages_shown": 5,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": [
+            "for every completed month"
+          ]
+        },
+        {
+          "id": "reconcile-time",
+          "type": "factual",
+          "reply": "Payment reconciliation runs every night at 02:00 UTC. [1]",
+          "first_token_s": 2.214,
+          "total_s": 2.486,
+          "passages_shown": 2,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "db",
+          "type": "factual",
+          "reply": "Meridian uses PostgreSQL 15 as its database [1].",
+          "first_token_s": 2.313,
+          "total_s": 2.534,
+          "passages_shown": 5,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "workers",
+          "type": "factual",
+          "reply": "The architecture specifies that background jobs run on a Redis queue with three worker processes. \n\nSo, there are **three** background worker processes.",
+          "first_token_s": 1.95,
+          "total_s": 2.371,
+          "passages_shown": 1,
+          "passages_cited": 0,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 0,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "rounding",
+          "type": "paraphrase",
+          "reply": "Fractions of a cent are handled using banker's rounding, which rounds half to even. This means that when a value is exactly halfway between two cents, it is rounded to the nearest even cent. For example, 0.5 cents would be rounded to 0 cents, and 1.5 cents would be rounded to 2 cents. This method minimizes cumulative rounding errors in financial calculations.\n\nThis practice is standard in financial systems, including currency handling systems such as the one described in the Meridian engineering handbook [1]. All amounts are stored as integers in minor units (cents), so no actual fractions of a cent are stored \u2014 only whole cents are used in storage and calculations. Any fractional part is resolved during conversion using banker's rounding.",
+          "first_token_s": 1.867,
+          "total_s": 4.098,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "jpy",
+          "type": "factual",
+          "reply": "Japanese yen amounts are stored as integers in minor units (cents), using banker's rounding (round half to even) for conversions. Since the yen is a zero-decimal currency, it is stored without a factor [1].",
+          "first_token_s": 0.738,
+          "total_s": 1.405,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": false,
+          "unsupported_claims": [
+            "Japanese yen amounts are stored as integers in minor units (cents)"
+          ]
+        },
+        {
+          "id": "retention-invoices",
+          "type": "factual",
+          "reply": "Invoices are kept for 7 years to meet tax rules [1].",
+          "first_token_s": 2.0,
+          "total_s": 2.233,
+          "passages_shown": 3,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": false,
+          "unsupported_claims": [
+            "Invoices are kept for 7 years to meet tax rules"
+          ]
+        },
+        {
+          "id": "retention-webhooks",
+          "type": "factual",
+          "reply": "Webhook delivery logs are deleted after 90 days, as stated in the Meridian engineering handbook [1].\n\n(Correction: I hadn't actually done that yet. Doing it now.)\n\nI found the information about webhook delivery logs in the Meridian engineering handbook [1]. No tool call was needed because this is a factual query based on existing documentation. The answer is already accurate and sourced. It was not done to call a tool because no action (like creating a task or note) was required.",
+          "first_token_s": 1.883,
+          "total_s": 3.514,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "anonymise",
+          "type": "paraphrase",
+          "reply": "Personal data in cancelled accounts is anonymised 30 days after cancellation [1].",
+          "first_token_s": 0.806,
+          "total_s": 1.07,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "oncall-rotation",
+          "type": "factual",
+          "reply": "The on-call rotation changes every Monday at 10:00 local time. [1]",
+          "first_token_s": 1.908,
+          "total_s": 2.207,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "page-ack",
+          "type": "paraphrase",
+          "reply": "You didn't mention being paged before, so I don't have a specific response time on file. If you're asking about your own paging protocol, I'd need more context\u2014like what kind of paging (e.g., system alerts, urgent tasks, meetings), or who is paging you.\n\nCould you clarify what you mean by \"paged\"? For example:\n- Is it a system alert (like a server or app notification)?\n- A personal reminder or task?\n- A meeting or call?\n\nOnce I know, I can help set up a response expectation or check if there's an existing rule in your calendar or tasks.",
+          "first_token_s": 2.118,
+          "total_s": 4.033,
+          "passages_shown": 0,
+          "passages_cited": 0,
+          "invented_markers": 0,
+          "correct": false,
+          "cited_relevant": 0,
+          "shown_relevant": 0
+        },
+        {
+          "id": "sev1",
+          "type": "factual",
+          "reply": "During a SEV1 incident\u2014when customers cannot pay\u2014a status page update must be posted within 30 minutes of the incident occurring [1]. This is part of the on-call protocol defined in the Meridian engineering handbook. The primary on-call engineer must also acknowledge any page within 15 minutes of it being raised.",
+          "first_token_s": 1.177,
+          "total_s": 2.199,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": [
+            "This is part of the on-call protocol defined in the Meridian engineering handbook"
+          ]
+        },
+        {
+          "id": "prod-deploy",
+          "type": "factual",
+          "reply": "Production deployments for Meridian occur only from tagged releases named `vMAJOR.MINOR.PATCH`, and they are restricted to deployment between Monday and Thursday. \n\nStaging deploys automatically from the main branch after the test suite passes, but production deployments are strictly controlled and require a tagged release within the specified weekday window. \n\n[1]",
+          "first_token_s": 1.91,
+          "total_s": 2.939,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "deploy-days",
+          "type": "paraphrase",
+          "reply": "No, you cannot ship to production on a Friday.  \n\nAccording to the deployment rules, production is only deployed between Monday and Thursday. Friday is outside that window [1].  \n\nIf you need to deploy, you\u2019ll need to schedule it for one of those weekdays.",
+          "first_token_s": 0.829,
+          "total_s": 1.644,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "migrations",
+          "type": "factual",
+          "reply": "Database migrations must remain backward compatible with the previous release for one full release cycle. This ensures that a rollback never needs a down-migration. [1]",
+          "first_token_s": 2.455,
+          "total_s": 2.951,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "rollback-cmd",
+          "type": "factual",
+          "reply": "The command to roll back a bad release is `meridian-cli rollback --to <tag>`. \n\nThis must be executed within 30 minutes of the alert, and the incident channel must be informed of the tag you rolled back to [1].",
+          "first_token_s": 2.036,
+          "total_s": 2.832,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "secrets",
+          "type": "factual",
+          "reply": "Secrets are stored in Vault under the path `secret/meridian/<environment>`. They are never stored in the repository or CI variables [1].",
+          "first_token_s": 2.155,
+          "total_s": 2.618,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "vault-expiry",
+          "type": "factual",
+          "reply": "Vault access tokens expire after 8 hours. [1]",
+          "first_token_s": 0.887,
+          "total_s": 1.079,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "idempotency",
+          "type": "factual",
+          "reply": "Use an `Idempotency-Key` header in every request. If the same key is sent within 24 hours, the system returns the original invoice instead of creating a new one [1].",
+          "first_token_s": 2.073,
+          "total_s": 2.685,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "rate-limit",
+          "type": "factual",
+          "reply": "Each API key is limited to 600 requests per minute. Requests exceeding this limit return an HTTP 429 status code with a Retry-After header indicating the number of seconds to wait before retrying [1].",
+          "first_token_s": 2.007,
+          "total_s": 2.695,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "webhook-retries",
+          "type": "factual",
+          "reply": "Failed deliveries are retried 8 times with exponential backoff over roughly 24 hours. This refers to failed deliveries, not webhooks specifically. The provided document does not specify how many times failed webhooks are retried. \n\nIf you meant something else, or if you have more context, let me know!",
+          "first_token_s": 2.109,
+          "total_s": 3.091,
+          "passages_shown": 1,
+          "passages_cited": 0,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 0,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "webhook-verify",
+          "type": "paraphrase",
+          "reply": "To verify that a webhook truly came from Meridian, you must validate the `X-Meridian-Signature` header using your webhook secret. Here's how:\n\n1. **Check the header**: Every webhook from Meridian includes an `X-Meridian-Signature` header.\n2. **Validate the signature**: Use your webhook secret to compute an HMAC-SHA256 hash of the raw webhook body. Compare this hash to the value in the `X-Meridian-Signature` header.\n3. **If they match**, the webhook is authentic and originated from Meridian.\n\nThis process ensures the message hasn't been tampered with or forged. The Meridian API documentation confirms this mechanism [1].\n\nIf you're implementing this in code, ensure your server:\n- Extracts the raw body of the request.\n- Retrieves the `X-Meridian-Signature` header.\n- Uses your webhook secret to generate the HMAC-SHA256 hash.\n- Validates that the computed hash matches the header value.\n\nLet me know if you'd like help writing or testing this logic.",
+          "first_token_s": 2.375,
+          "total_s": 5.812,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "code-latefee",
+          "type": "code",
+          "reply": "The function that calculates the late fee is `compute_late_fee` in the `late_fees.py` file [1].\n\nIt returns the late fee in **minor units** (a unit of currency, typically 1/100 of a unit). The fee is calculated as:\n- 2% per month after a 5-day grace period.\n- Capped at 25% of the original amount.\n\nThis means the fee grows incrementally over months but never exceeds 25% of the invoice amount.",
+          "first_token_s": 2.355,
+          "total_s": 3.943,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "code-minor",
+          "type": "code",
+          "reply": "The `toMinorUnits` function is defined in the file `currency.ts`, specifically in the export function block that converts an amount to minor units based on the currency's decimal precision [1]. \n\nIf you'd like, I can show you the full code or help you locate it in the repository.",
+          "first_token_s": 2.326,
+          "total_s": 3.273,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": false,
+          "unsupported_claims": [
+            "The `toMinorUnits` function is defined in the file `currency.ts`",
+            "specifically in the export function block that converts an amount to minor units based on the currency's decimal precision [1]",
+            "If you'd like, I can show you the full code or help you locate it in the repository"
+          ]
+        },
+        {
+          "id": "pdf-renderer",
+          "type": "factual",
+          "reply": "The team decided that the PDF renderer will move from wkhtmltopdf to Typst. Priya owns the migration, and the target is the end of November [1].",
+          "first_token_s": 2.055,
+          "total_s": 2.581,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "reminder-timing",
+          "type": "factual",
+          "reply": "According to the Meridian team meeting decision from 14 October 2026, payment reminders will be sent **3 days before the due date**, instead of on the due date [1]. \n\nSo, from now on, payment reminders will be sent 3 days prior to the invoice due date.",
+          "first_token_s": 2.107,
+          "total_s": 3.081,
+          "passages_shown": 2,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "password-rotation",
+          "type": "pdf",
+          "reply": "Admin passwords rotate every 90 days, as stated in the Meridian security policy [1].",
+          "first_token_s": 2.002,
+          "total_s": 2.305,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "mfa",
+          "type": "pdf",
+          "reply": "Yes, multi-factor authentication is required for production access, as stated in the security policy [1].",
+          "first_token_s": 2.004,
+          "total_s": 2.301,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "conv-buried",
+          "type": "conversational",
+          "reply": "Each API key is allowed 600 requests per minute. Requests over that limit return an HTTP 429 with a Retry-After header in seconds [1].",
+          "first_token_s": 3.562,
+          "total_s": 4.096,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "conv-filler",
+          "type": "conversational",
+          "reply": "You mentioned in the Meridian team meeting on 14 October 2026 that Priya owns the migration to Typst for the PDF renderer [1].",
+          "first_token_s": 3.314,
+          "total_s": 3.818,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "open-question",
+          "type": "factual",
+          "reply": "No, multi-currency invoicing has not been decided yet. The Meridian team meeting on 14 October 2026 listed it as an open question, with a decision pending from the finance team [1].",
+          "first_token_s": 2.199,
+          "total_s": 2.916,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "correct": true,
+          "cited_relevant": 1,
+          "shown_relevant": 1,
+          "faithful": true,
+          "unsupported_claims": []
+        },
+        {
+          "id": "none-mobile",
+          "type": "unanswerable",
+          "reply": "The documents I have do not mention the release date of the Meridian mobile app. You may need to check the project roadmap or contact the development team directly for this information. Let me know if you'd like help with anything else.",
+          "first_token_s": 2.237,
+          "total_s": 2.99,
+          "passages_shown": 3,
+          "passages_cited": 0,
+          "invented_markers": 0,
+          "abstained": true
+        },
+        {
+          "id": "none-ceo",
+          "type": "unanswerable",
+          "reply": "I don't have access to real-time or specific company leadership data. You might want to check the official website of the company or a reliable business directory for the current CEO. Let me know if you'd like help with anything else!",
+          "first_token_s": 2.251,
+          "total_s": 2.946,
+          "passages_shown": 0,
+          "passages_cited": 0,
+          "invented_markers": 0,
+          "abstained": true
+        },
+        {
+          "id": "none-kubernetes",
+          "type": "unanswerable",
+          "reply": "I don't have information about how many Kubernetes pods Meridian runs in production. The deployed environments document mentions staging and production deployment processes, but it doesn't specify pod counts [1]. \n\nNo uploaded documents or project files contain details about Kubernetes pod configurations in production. You may need to consult the infrastructure or operations team for this information.",
+          "first_token_s": 2.4,
+          "total_s": 3.439,
+          "passages_shown": 1,
+          "passages_cited": 1,
+          "invented_markers": 0,
+          "abstained": true
+        }
+      ]
+    }
+  }
+}

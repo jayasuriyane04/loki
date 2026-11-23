@@ -38,6 +38,15 @@ def precheck(name: str) -> Callable:
 
 def load_builtin_tools() -> dict[str, Tool]:
     # Importing the modules registers their tools.
+    from app.core.config import get_settings
     from app.tools import builtin  # noqa: F401
 
+    if not get_settings().desktop_tools:
+        # In a container (or on a server) "open an app", "run a command" or "open a URL" would act on the server,
+        # not on the user's desktop: leave those tools out entirely.
+        for name in DESKTOP_TOOLS:
+            REGISTRY.pop(name, None)
     return REGISTRY
+
+
+DESKTOP_TOOLS = ("run_command", "open_app", "open_url", "run_workflow")

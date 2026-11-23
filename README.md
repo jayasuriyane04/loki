@@ -2,14 +2,15 @@
 
 A voice-first, memory-backed, tool-using personal AI assistant, built in phases.
 
-**Current status: Phases 1–6 done.** LOKI is a text **and voice** assistant with long-term memory, a personal
+**Current status: all seven phases done.** LOKI is a text **and voice** assistant with long-term memory, a personal
 knowledge base with cited answers, and an agent that uses tools. It can search the web and read pages, check the
 weather, manage tasks, reminders, notes and a calendar, search your files and code, and run approved dev commands and
 apps. Anything destructive asks you first. Everything runs locally: Whisper on the GPU, Kokoro speech, Ollama for the
 chat and embedding models, an ONNX reranker, PostgreSQL + pgvector and SearXNG in Docker. Phase 6 adds settings
 (reply style, your own instructions, voice on the account), projects LOKI recognises in conversation, dated
 conversation summaries, and opt-in background features: deadline and event alerts, a daily briefing, quiet hours and
-watched project folders. Evaluation and deployment (Phase 7) are next. See [docs/ROADMAP.md](docs/ROADMAP.md).
+watched project folders. Phase 7 adds an Analytics page (live traces and metrics), offline evaluation suites for
+retrieval, the agent and voice, and a Docker deployment. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 | Doc | Contents |
 |---|---|
@@ -17,6 +18,8 @@ watched project folders. Evaluation and deployment (Phase 7) are next. See [docs
 | [docs/DATABASE.md](docs/DATABASE.md) | Schema (implemented and planned) |
 | [docs/API.md](docs/API.md) | REST + WebSocket contracts |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phase plan and status |
+| [docs/EVALUATION.md](docs/EVALUATION.md) | Evaluation suites, current results, live metrics |
+| [docs/USER_TESTING.md](docs/USER_TESTING.md) | Real-user testing protocol |
 
 ## Stack
 - **Backend**: Python 3.13, FastAPI, Pydantic, SQLAlchemy 2 (async), WebSockets, Argon2id
@@ -96,6 +99,38 @@ tool to automatic, "ask me first" or off, and shows the activity log. Allowed co
 microphone is on. Just speak; LOKI answers out loud, and you can interrupt it by talking (or say "stop").
 Voice, speed and "read typed replies aloud" are in the **Voice** menu in the top bar. Use headphones so
 LOKI doesn't hear itself.
+
+## Run in Docker (Phase 7)
+
+Everything except Ollama in containers: backend on http://localhost:8100, UI on http://localhost:3100. Ollama stays on
+the host (start it with `scripts\start-ollama.ps1`). The backend container uses the NVIDIA GPU for speech recognition
+and the model files you already downloaded (`backend/models`, and Whisper from your Hugging Face cache).
+```powershell
+docker compose --profile app up -d --build
+```
+- Uses the same database as running from source. Run one backend at a time: stop the source backend first, or
+  reminders can be delivered twice.
+- In the container, the desktop tools (run a command, open an app or website, workflows) are switched off
+  (`DESKTOP_TOOLS=false`), because they would act inside the container rather than on your PC.
+- Documents uploaded from source are stored under `backend/data/uploads`. The container keeps uploads in its own
+  volume: search works for everything already indexed, but re-indexing an older document needs a fresh upload.
+- The browser talks to the backend directly. To serve LOKI from another host, rebuild the frontend with
+  `--build-arg NEXT_PUBLIC_API_URL=https://your-host`, and set `CORS_ORIGINS` and `COOKIE_SECURE=true` (HTTPS).
+- Stop with `docker compose --profile app down` (your data stays in the `pgdata` volume).
+
+## Evaluations and analytics
+Open **Analytics** in the side panel for live latency, tokens, tool success, citation validity, errors and per-turn
+traces. Offline benchmarks with the real models (separate `loki_eval` database):
+```powershell
+cd backend; .\.venv\Scripts\python.exe -m eval.run rag --answers
+```
+```powershell
+cd backend; .\.venv\Scripts\python.exe -m eval.run agent --repeat 3
+```
+```powershell
+cd backend; .\.venv\Scripts\python.exe -m eval.run voice
+```
+Methods and current results: [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ## Tests
 ```powershell

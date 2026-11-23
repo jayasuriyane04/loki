@@ -1,4 +1,5 @@
 import asyncio
+import contextvars
 import json
 import logging
 import time
@@ -16,6 +17,7 @@ from app.agent.graph import Approvals
 from app.db.models import Conversation, User, UserSettings
 from app.db.session import SessionLocal
 from app.memory.service import MemoryService
+from app.observability.trace import Trace, current_trace, sink, span, traced
 from app.personal.preferences import load as load_preferences
 from app.schemas import WSAudioUtterance, WSControl, WSUserMessage, WSVoiceConfig
 from app.services.chat import ChatService, TurnError, TurnResult
@@ -73,10 +75,17 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     async def transcribe(meta: WSAudioUtterance, pcm: bytes) -> WSUserMessage | None:
         await send({"type": "state", "state": "transcribing"})
         audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
+        trace = current_trace()
         try:
-            tr = await voice.stt.transcribe(audio, meta.sample_rate)  # type: ignore[union-attr]
+            async with span("stt", audio_s=round(len(audio) / meta.sample_rate, 2)):
+                tr = await voice.stt.transcribe(audio, meta.sample_rate)  # type: ignore[union-attr]
         except VoiceError as e:
+            if trace:
+                trace.attrs["stt_error"] = True
             raise TurnError("stt_failed", str(e)) from e
+        if trace:
+            trace.stt_ms = tr.latency_ms
+            trace.attrs.update(audio_s=round(tr.duration_s, 2), stt_language=tr.language, stt_empty=not tr.text)
         log.info("stt", extra={"audio_s": round(tr.duration_s, 2), "stt_ms": tr.latency_ms, "lang": tr.language, "chars": len(tr.text)})
         await send({"type": "stt_final", "text": tr.text, "language": tr.language, "latency_ms": tr.latency_ms, "audio_s": round(tr.duration_s, 2)})
         if not tr.text:
@@ -84,6 +93,8 @@ async def websocket_endpoint(ws: WebSocket) -> None:
             return None
         if is_stop_command(tr.text):
             # The client already stopped playback on barge-in; nothing to save or answer.
+            if trace:
+                trace.attrs["stop_command"] = True
             await send({"type": "stt_command", "command": "stop"})
             return None
         return WSUserMessage(
@@ -92,7 +103,14 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         )
 
     async def run(msg: WSUserMessage | None, audio: tuple[WSAudioUtterance, bytes] | None = None) -> None:
-        started = time.perf_counter()
+        trace = Trace("voice_turn" if audio is not None else "chat_turn", user_id=user_id,
+                      input_mode="voice" if audio is not None else "text")
+        with trace:
+            trace.started = time.perf_counter()
+            await _run(msg, audio, trace)
+
+    async def _run(msg: WSUserMessage | None, audio: tuple[WSAudioUtterance, bytes] | None, trace: Trace) -> None:
+        started = trace.started
         speaker: Speaker | None = None
         result: TurnResult | None = None
         try:
@@ -117,20 +135,30 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 )
             if result is not None and memory is not None:
                 # Runs after the reply, outside this turn: a barge-in must not cancel saving what was said.
-                task = asyncio.create_task(_after_turn(memory, user_id, result, send))
+                # Its own trace: a fresh context so it isn't counted as part of this turn.
+                task = asyncio.create_task(_after_turn(memory, user_id, result, send), context=contextvars.Context())
                 background.add(task)
                 task.add_done_callback(background.discard)
             if speaker:
                 await speaker.finish()
+                trace.first_audio_ms = speaker.first_audio_ms
+                trace.attrs.update(tts_chunks=speaker.chunks, tts_failed=speaker.failed)
+            if result is None and trace.status == "ok" and msg is not None:
+                trace.status = "empty"
         except TurnError as e:
+            trace.status = "error"
+            trace.attrs["error"] = e.code
             await _safe(send, {"type": "error", "code": e.code, "message": e.message})
         except asyncio.CancelledError:
             raise
         except Exception:
+            trace.status = "error"
             log.exception("turn failed")
             await _safe(send, {"type": "error", "code": "internal", "message": "Something went wrong on LOKI's side."})
         finally:
             if speaker:
+                if speaker.first_audio_ms is not None:
+                    trace.first_audio_ms = speaker.first_audio_ms
                 await speaker.close()
             await _safe(send, {"type": "state", "state": "idle"})
 
@@ -143,6 +171,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
         return current is not None and not current.done()
 
     notifier.connect(user_id, send)
+    sink.ws_opened()
     try:
         while True:
             frame = await ws.receive()
@@ -199,6 +228,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     except WebSocketDisconnect:
         pass
     finally:
+        sink.ws_closed()
         notifier.disconnect(user_id, send)
         approvals.cancel_all()
         await stop_current()
@@ -219,8 +249,11 @@ async def _save_timezone(user_id: Any, tz: str) -> None:
         await db.commit()
 
 
+@traced("memory_extract")
 async def _after_turn(memory: MemoryService, user_id: Any, result: TurnResult, send: Any) -> None:
     """Post-turn memory work: extract durable facts, then compress the conversation if it is getting long."""
+    if trace := current_trace():
+        trace.user_id = user_id
     try:
         async with SessionLocal() as db:
             user = await db.get(User, user_id)

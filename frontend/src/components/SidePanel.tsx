@@ -17,7 +17,6 @@ import {
 import { useState } from "react";
 import { useChat } from "@/store/chat";
 
-const UPCOMING = [{ icon: ChartColumn, label: "Analytics", phase: 7 }];
 
 function groupLabel(iso: string): string {
   const d = new Date(iso);
@@ -147,6 +146,7 @@ export function SidePanel({ onNavigate }: { onNavigate?: () => void }) {
             ["memories", Brain, "Memory"],
             ["knowledge", BookOpen, "Knowledge base"],
             ["tools", Wrench, "Tools"],
+            ["analytics", ChartColumn, "Analytics"],
           ] as const
         ).map(([key, Icon, label]) => (
           <button
@@ -163,18 +163,6 @@ export function SidePanel({ onNavigate }: { onNavigate?: () => void }) {
             <Icon size={14} className="text-cyan" />
             {label}
           </button>
-        ))}
-        <div className="hud-label px-3 pb-1 pt-1">Coming next</div>
-        {UPCOMING.map(({ icon: Icon, label, phase }) => (
-          <div
-            key={label}
-            className="flex cursor-not-allowed items-center gap-2 px-3 py-1.5 text-sm text-faint"
-            title={`Not built yet — Phase ${phase}`}
-          >
-            <Icon size={14} />
-            <span>{label}</span>
-            <span className="ml-auto font-mono text-[10px] text-faint/70">P{phase}</span>
-          </div>
         ))}
       </div>
     </nav>

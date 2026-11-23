@@ -120,6 +120,8 @@ class Message(Base):
     citations: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
     # Tool calls made while producing this reply: [{id, tool, args, status, summary, approved}] (Phase 5).
     tool_steps: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
+    feedback: Mapped[int | None] = mapped_column(Integer, nullable=True)  # +1 helpful / -1 not helpful (user rating)
+    feedback_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")
@@ -319,3 +321,43 @@ class Chunk(Base):
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM), nullable=True)
 
     document: Mapped[Document] = relationship(lazy="joined")
+
+
+class TraceRow(Base):
+    """One traced unit of work (a chat/voice turn, a memory extraction). Timings and counts only, no content."""
+
+    __tablename__ = "traces"
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String(32), index=True)  # chat_turn | voice_turn | memory_extract
+    status: Mapped[str] = mapped_column(String(16))  # ok | error | interrupted | empty
+    input_mode: Mapped[str] = mapped_column(String(8), default="text")
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    first_token_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    first_audio_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    stt_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    prompt_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    completion_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cost_usd: Mapped[float | None] = mapped_column(Float, nullable=True)  # None = no price configured (local models)
+    spans: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
+    attrs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+
+
+class MetricEvent(Base):
+    """System-level metric: an HTTP request, an error, a gauge sample, a job run."""
+
+    __tablename__ = "metric_events"
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    kind: Mapped[str] = mapped_column(String(16), index=True)  # http | error | gauge | job
+    name: Mapped[str] = mapped_column(String(200))
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ok: Mapped[bool] = mapped_column(Boolean, default=True)
+    value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    attrs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)

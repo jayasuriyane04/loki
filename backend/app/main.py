@@ -13,6 +13,7 @@ from app.api import (
     routes_conversations,
     routes_knowledge,
     routes_memory,
+    routes_metrics,
     routes_personal,
     routes_productivity,
     routes_system,
@@ -25,6 +26,7 @@ from app.db.session import engine
 from app.agent.notify import Notifier, ProactiveScheduler
 from app.personal.folders import FolderWatcher
 from app.knowledge.ingest import Ingestor
+from app.observability.trace import ErrorCapture, record_event, sink
 from app.tools.builtin.system import LOG_BUFFER
 from app.tools.registry import load_builtin_tools
 from app.knowledge.rerank import OnnxCrossEncoder
@@ -37,6 +39,7 @@ from app.voice.manager import VoiceManager
 settings = get_settings()
 configure_logging(settings.log_level)
 logging.getLogger().addHandler(LOG_BUFFER)  # lets the read_app_logs tool inspect recent logs
+logging.getLogger().addHandler(ErrorCapture())  # error counts for the Analytics page
 load_builtin_tools()
 log = logging.getLogger("loki")
 
@@ -46,6 +49,9 @@ async def lifespan(app: FastAPI):
     if settings.auto_migrate:
         # Alembic's env runs its own event loop, so it gets a worker thread.
         await asyncio.to_thread(migrate.upgrade, settings.database_url)
+    sink.enabled = settings.metrics_enabled
+    sink.prices = dict(settings.model_prices)
+    metrics_task = asyncio.create_task(sink.run(retention_days=settings.metrics_retention_days))
     app.state.llm = LLMRouter.from_settings(settings)
     # Background; never blocks start-up.
     warm = asyncio.create_task(app.state.llm.primary.warmup() if settings.llm_warmup else asyncio.sleep(0))
@@ -87,6 +93,8 @@ async def lifespan(app: FastAPI):
     await app.state.embeddings.aclose()
     await app.state.voice.stop()
     await app.state.llm.aclose()
+    metrics_task.cancel()
+    await asyncio.gather(metrics_task, return_exceptions=True)  # flushes what's buffered
     await engine.dispose()
 
 
@@ -113,6 +121,11 @@ async def request_context(request: Request, call_next):
         response = JSONResponse({"detail": "Internal server error", "request_id": rid}, status_code=500)
     duration = int((time.perf_counter() - start) * 1000)
     response.headers["X-Request-ID"] = rid
+    route = request.scope.get("route")
+    path = getattr(route, "path", None) or "unmatched"  # the route template, never ids or query strings
+    if path != "/api/health" and not path.startswith("/api/metrics"):
+        record_event("http", f"{request.method} {path}", duration_ms=duration, ok=response.status_code < 500,
+                     status=response.status_code)
     log.info(
         "request",
         extra={"method": request.method, "path": request.url.path, "status": response.status_code, "ms": duration},
@@ -127,5 +140,6 @@ app.include_router(routes_memory.router)
 app.include_router(routes_knowledge.router)
 app.include_router(routes_productivity.router)
 app.include_router(routes_personal.router)
+app.include_router(routes_metrics.router)
 app.include_router(routes_system.router)
 app.include_router(ws.router)

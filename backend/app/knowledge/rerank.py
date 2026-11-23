@@ -65,9 +65,12 @@ class OnnxCrossEncoder(Reranker):
 
     def _score_sync(self, query: str, passages: list[str]) -> list[float]:
         assert self._session is not None and self._tokenizer is not None
-        scores: list[float] = []
-        for i in range(0, len(passages), self.batch_size):
-            enc = self._tokenizer.encode_batch([(query, p) for p in passages[i : i + self.batch_size]])
+        # Batches are padded to their longest member, so batch similar lengths together (same scores, less work).
+        order = sorted(range(len(passages)), key=lambda i: len(passages[i]))
+        scores = [0.0] * len(passages)
+        for i in range(0, len(order), self.batch_size):
+            idx = order[i : i + self.batch_size]
+            enc = self._tokenizer.encode_batch([(query, passages[j]) for j in idx])
             feed = {
                 "input_ids": np.array([e.ids for e in enc], dtype=np.int64),
                 "attention_mask": np.array([e.attention_mask for e in enc], dtype=np.int64),
@@ -75,7 +78,8 @@ class OnnxCrossEncoder(Reranker):
             if "token_type_ids" in self._inputs:
                 feed["token_type_ids"] = np.array([e.type_ids for e in enc], dtype=np.int64)
             logits = self._session.run(None, feed)[0].reshape(-1)
-            scores.extend((1 / (1 + np.exp(-logits))).tolist())
+            for j, p in zip(idx, (1 / (1 + np.exp(-logits))).tolist(), strict=True):
+                scores[j] = p
         return scores
 
     async def score(self, query: str, passages: list[str]) -> list[float]:

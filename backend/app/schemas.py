@@ -69,6 +69,7 @@ class MessageOut(ORM):
     first_token_ms: int | None
     citations: list[dict] | None = None
     tool_steps: list[dict] | None = None
+    feedback: int | None = None
     created_at: datetime
 
 

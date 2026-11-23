@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/store/auth";
 import { useChat } from "@/store/chat";
+import { AnalyticsPage } from "./AnalyticsPage";
 import { AssistantView } from "./AssistantView";
 import { KnowledgeBase } from "./KnowledgeBase";
 import { MemoryManager } from "./MemoryManager";
@@ -60,6 +61,8 @@ export function AppShell() {
             <ProjectsPage />
           ) : view === "settings" ? (
             <SettingsPage />
+          ) : view === "analytics" ? (
+            <AnalyticsPage />
           ) : (
             <AssistantView />
           )}

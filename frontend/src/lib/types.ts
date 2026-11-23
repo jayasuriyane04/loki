@@ -30,6 +30,7 @@ export type Message = {
   first_token_ms: number | null;
   citations?: Citation[] | null;
   tool_steps?: ToolStep[] | null;
+  feedback?: number | null;
   created_at: string;
 };
 
@@ -361,3 +362,52 @@ export type ProjectDetail = ProjectInfo & {
 };
 
 export type FolderScan = { added: string[]; updated: string[]; removed: string[]; skipped: number };
+
+// ---------- Phase 7: observability ----------
+export type Dist = { n: number; p50: number | null; p95: number | null; max: number | null };
+
+export type MetricsSummary = {
+  days: number;
+  voice: {
+    turns: number; stt_ms: Dist; first_audio_ms: Dist; total_ms: Dist; stt_errors: number; stt_error_rate: number | null;
+    no_speech: number; stop_commands: number; interrupted: number; tts_failures: number;
+  };
+  responses: {
+    turns: number; first_token_ms: Dist; total_ms: Dist; errors: number; error_rate: number | null; fallbacks: number;
+    prompt_tokens: number; completion_tokens: number; cost_usd: number | null;
+    by_model: Record<string, { turns: number; prompt_tokens: number; completion_tokens: number; cost_usd: number | null }>;
+  };
+  rag: {
+    retrieval_ms: Dist; turns_with_documents: number; avg_passages: number | null; turns_citing: number;
+    passages_shown: number; passages_cited: number; invented_citations: number; citation_validity: number | null;
+  };
+  memory: { recall_ms: Dist; recalls_with_hits: number; extraction_ms: Dist; extraction_errors: number };
+  agent: {
+    turns_with_tools: number; tool_calls: number; success_rate: number | null; denied: number; failed: number;
+    failure_recovery_rate: number | null; turns_with_failures: number; model_steps: Dist; guards: Record<string, number>;
+    per_tool: { tool: string; calls: number; success_rate: number | null; p50_ms: number | null }[];
+  };
+  system: {
+    requests: number; api_ms: Dist; server_errors: number;
+    slowest_routes: { route: string; n: number; p50_ms: number | null; p95_ms: number | null }[];
+    errors: number; errors_by_source: [string, number][];
+    recent_errors: { at: string; source: string; message: string | null }[];
+    connections_now: number; connections_peak: number; feedback: { up: number; down: number }; dropped_metrics: number;
+  };
+  daily: { date: string; turns: number; errors: number; tokens: number; p50_first_token_ms: number | null }[];
+  evals: Record<string, { file: string; ran_at: string; headline: Record<string, unknown>; config: Record<string, unknown> }>;
+};
+
+export type TraceSpan = { name: string; start_ms: number; duration_ms: number; attrs?: Record<string, unknown> };
+
+export type TraceInfo = {
+  id: string; kind: string; status: string; input_mode: string; created_at: string; conversation_id: string | null;
+  model: string | null; duration_ms: number | null; first_token_ms: number | null; first_audio_ms: number | null;
+  stt_ms: number | null; prompt_tokens: number | null; completion_tokens: number | null;
+  spans: TraceSpan[]; attrs: Record<string, unknown>;
+};
+
+export type EvalReport = {
+  suite: string; ran_at: string; config: Record<string, unknown>; headline: Record<string, unknown>;
+  details: Record<string, unknown>;
+};

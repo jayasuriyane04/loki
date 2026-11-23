@@ -71,7 +71,7 @@ type ChatState = {
 };
 
 const VOICE_KEY = "loki.voice";
-export type View = "assistant" | "memories" | "knowledge" | "planner" | "tools" | "projects" | "settings";
+export type View = "assistant" | "memories" | "knowledge" | "planner" | "tools" | "projects" | "settings" | "analytics";
 
 const DEFAULT_VOICE: VoiceSettings = { voice: null, speed: 1, speakTextReplies: false };
 
